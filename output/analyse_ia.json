@@ -1,0 +1,32 @@
+[
+  {
+    "reference": "RM-2026-0851",
+    "date": "15/09/2026",
+    "equipement": "Compresseur d'air CA-101",
+    "technicien": "Fatima Zohra Meddahi",
+    "probleme": "Déclenchement d'une alarme de basse pression causé par une fuite mineure au niveau d'un raccord pneumatique sur la ligne de refoulement.",
+    "recurrent": false,
+    "recommandation": "Aucune action complémentaire n'est nécessaire. Un simple contrôle visuel de routine devra être effectué lors de la prochaine ronde.",
+    "fichier": "RM-2026-0851.txt"
+  },
+  {
+    "reference": "RM-2026-0860",
+    "date": "20/09/2026",
+    "equipement": "Groupe électrogène GE-02 (secours)",
+    "technicien": "Karim Slimani",
+    "probleme": "Il s'agit d'une maintenance préventive planifiée sans aucune anomalie signalée au préalable.",
+    "recurrent": false,
+    "recommandation": "Effectuer le prochain contrôle trimestriel dans 3 mois, aucune action corrective n'étant nécessaire.",
+    "fichier": "RM-2026-0860.txt"
+  },
+  {
+    "reference": null,
+    "date": null,
+    "equipement": "Ventilateur d'extraction VT-45",
+    "technicien": "Amine",
+    "probleme": "Le ventilateur d'extraction VT-45 s'est arrêté en raison d'une courroie complètement usée.",
+    "recurrent": true,
+    "recommandation": "Vérifier la tension et l'alignement des poulies pour déterminer la cause de l'usure prématurée de la courroie, tout en surveillant l'équipement durant les prochaines semaines.",
+    "fichier": "rapport_libre.txt"
+  }
+]

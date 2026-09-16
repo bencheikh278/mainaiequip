@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 from docx import Document
 
 #include the 3  possible type of files report .txt .doc or .pdf

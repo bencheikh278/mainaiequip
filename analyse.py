@@ -44,4 +44,8 @@ def decouper(texte):
             resultat[champ] = None
 
     return resultat
+ # this for later to detect if the raport is exactly abot the equip
+def compter_champs_remplis(donnees):
+    """Combien de champs sur 12 ont ete trouves (sert a detecter un doc suspect)."""
+    return sum(1 for champ in TITRES if donnees.get(champ))
 
