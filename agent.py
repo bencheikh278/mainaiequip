@@ -30,6 +30,7 @@ Il faut donc analyser chaque équipement séparément.
 
 Retourne UNIQUEMENT un JSON valide.
 
+
 Format obligatoire :
 
 {{
@@ -63,6 +64,7 @@ Format obligatoire :
 
 Règles :
 
+
 - Si une information n'existe pas, utiliser null.
 - Ne rien inventer.
 - Garder les informations de chaque équipement séparées.
@@ -95,42 +97,72 @@ RAPPORT :
         }
     )
 
+
     return json.loads(
         response.choices[0].message.content
     )
 
 
-def synthese_globale(resultats):
+# ============================================================
+# DETECTION D'ANOMALIES PAR L'IA 
+# ============================================================
 
-    donnees = json.dumps(
-        resultats,
-        ensure_ascii=False,
-        indent=2
-    )
+def detecter_anomalies_ia(historique):
+    """
+    Demande a l'IA d'analyser tout l'historique et de detecter
+    elle-meme les equipements recurrents et les rechutes (probleme
+    marque resolu puis redevenu actif plus tard).
+    """
+    donnees = json.dumps(historique, ensure_ascii=False, indent=2)
 
     prompt = f"""
-Tu es un système intelligent d'aide à la maintenance industrielle.
+Tu es un agent IA specialise dans la detection d'anomalies de
+maintenance industrielle.
 
-Voici l'historique des analyses de plusieurs rapports.
+Voici l'historique complet des rapports deja analyses. Chaque
+rapport contient une date, un fichier source, et une liste
+d'equipements avec leurs anomalies et resultats d'intervention.
 
-Analyse ces données et produis une synthèse.
+Ta mission :
 
-Tu dois identifier :
+1. Regroupe les equipements par nom (le meme equipement peut
+   apparaitre dans plusieurs rapports differents).
+2. Pour chaque equipement qui apparait 2 fois ou plus, retrace
 
-1. Les équipements présentant des problèmes répétés.
-2. Les anomalies récurrentes.
-3. Les tendances observées.
-4. Les équipements nécessitant une surveillance.
-5. Les recommandations de maintenance.
+   la chronologie de ses interventions dans l'ordre des dates.
+3. Pour chaque intervention, determine si le resultat indique que
+   le probleme est "resolu" ou reste "actif" (base-toi sur le champ
+   "resultats" de chaque equipement).
+4. Detecte les RECHUTES : un equipement dont le statut passe de
+   "resolu" a "actif" a un moment ulterieur.
+5. Determine le statut actuel de chaque equipement recurrent.
 
-Ne crée aucune information qui n'existe pas
-dans les données.
+Retourne UNIQUEMENT un JSON valide, dans ce format exact :
 
-Données :
+{{
+    "equipements_recurrents": [
+        {{
+            "nom": "...",
+            "nb_occurrences": 0,
+            "fichiers_concernes": ["..."],
+            "chronologie": [
+                {{"fichier": "...", "date": "...", "statut": "resolu ou actif"}}
+            ],
+            "nb_rechutes": 0,
+            "statut_actuel": "resolu ou actif",
+            "alerte": "description courte du niveau de risque"
+        }}
+    ]
+}}
 
+Ne considere PAS un equipement qui n'apparait qu'une seule fois.
+Ne rien inventer.
+
+HISTORIQUE :
+--------------------
 {donnees}
 
-Réponds en français avec une structure claire.
+--------------------
 """
 
     response = client.chat.completions.create(
@@ -140,7 +172,98 @@ Réponds en français avec une structure claire.
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        response_format={
+            "type": "json_object"
+        }
     )
 
-    return response.choices[0].message.content
+    return json.loads(
+        response.choices[0].message.content
+    )
+
+
+# ============================================================
+# SYNTHESE GLOBALE : 2 livrables
+# -- "synthese des interventions realisees" + "recommandations"
+# ============================================================
+
+def synthese_globale(resultats):
+
+    anomalies = detecter_anomalies_ia(resultats)
+
+    donnees = json.dumps(
+        resultats,
+
+        ensure_ascii=False,
+        indent=2
+    )
+
+    anomalies_json = json.dumps(
+        anomalies,
+        ensure_ascii=False,
+        indent=2
+    )
+
+    prompt = f"""
+Tu es un système intelligent d'aide à la maintenance industrielle.
+
+Voici l'historique complet des interventions de maintenance, ainsi
+qu'une analyse des équipements récurrents et de leurs rechutes
+(information de contexte, à utiliser pour prioriser, mais à ne
+pas restituer telle quelle) :
+
+{anomalies_json}
+
+Produis UNIQUEMENT un JSON valide avec exactement 2 sections :
+
+{{
+    "synthese_interventions": [
+        {{
+            "equipement": "...",
+            "nb_interventions": 0,
+            "resume": "resume factuel de 1 a 2 phrases : quel
+                probleme, quelle action realisee, quel resultat"
+        }}
+    ],
+
+
+    "recommandations": [
+        {{
+            "equipement": "...",
+            "priorite": "haute, moyenne ou basse",
+            "action": "action concrete et courte a realiser",
+            "justification": "pourquoi, en une phrase"
+        }}
+    ]
+}}
+
+Une entree par equipement dans "synthese_interventions" (pas de
+paragraphe global). Trie "recommandations" par priorite (haute en
+premier). Un equipement en recidive (rechute detectee) passe
+automatiquement en priorite haute.
+
+Ne crée aucune information qui n'existe pas dans les données.
+
+Données complètes :
+
+{donnees}
+"""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        response_format={
+            "type": "json_object"
+
+        }
+    )
+
+    return json.loads(
+        response.choices[0].message.content
+    )

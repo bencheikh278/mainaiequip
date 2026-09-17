@@ -1,5 +1,6 @@
 import os
 import json
+import textwrap
 from datetime import datetime
 
 from extract import extract_text
@@ -161,7 +162,7 @@ def main():
         return
 
     print(
-        "\n=== SYNTHESE GLOBALE ===\n"
+        "\nGénération de la synthèse et des recommandations..."
     )
 
     try:
@@ -170,20 +171,85 @@ def main():
             historique
         )
 
-        print(synthese)
-
         os.makedirs(
             "output",
             exist_ok=True
         )
 
+        # livrable 1 : synthese des interventions realisees, par equipement
         with open(
-            "output/synthese_ia.txt",
+            "output/synthese_interventions.txt",
             "w",
             encoding="utf-8"
         ) as file:
 
-            file.write(synthese)
+            file.write("=== SYNTHESE DES INTERVENTIONS ===\n\n")
+
+            for item in synthese["synthese_interventions"]:
+
+                file.write(
+                    f"{item['equipement']} ({item['nb_interventions']} intervention(s))\n"
+                )
+
+                resume_formate = textwrap.fill(
+                    item['resume'],
+                    width=80,
+                    initial_indent="  ",
+                    subsequent_indent="  "
+                )
+
+                file.write(f"{resume_formate}\n\n")
+
+        # livrable 2 : recommandations, priorisees
+        with open(
+            "output/recommandations.txt",
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            file.write("=== RECOMMANDATIONS ===\n\n")
+
+            for r in synthese["recommandations"]:
+
+                file.write(
+                    f"[{r['priorite'].upper()}] {r['equipement']}\n"
+                )
+                file.write(
+                    f"  Action : {r['action']}\n"
+                )
+                file.write(
+                    f"  Justification : {r['justification']}\n\n"
+                )
+
+        print(
+            "\n=== SYNTHESE DES INTERVENTIONS ===\n"
+        )
+        for item in synthese["synthese_interventions"]:
+            print(
+                f"{item['equipement']} ({item['nb_interventions']} intervention(s))"
+            )
+            resume_formate = textwrap.fill(
+                item['resume'],
+                width=80,
+                initial_indent="  ",
+                subsequent_indent="  "
+            )
+            print(f"{resume_formate}\n")
+
+        print(
+            "=== RECOMMANDATIONS ===\n"
+        )
+        for r in synthese["recommandations"]:
+            print(
+                f"[{r['priorite'].upper()}] {r['equipement']} : {r['action']}"
+            )
+
+        print(
+            "\n-> output/synthese_interventions.txt"
+        )
+        print(
+            "-> output/recommandations.txt"
+        )
 
     except Exception as error:
 

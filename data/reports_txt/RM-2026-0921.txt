@@ -1,0 +1,38 @@
+RAPPORT D'INTERVENTION DE MAINTENANCE
+
+Référence : RM-2026-0921
+Date d'intervention : 21/09/2026
+Site : Unité de production - Zone D
+Équipement concerné : Moteur électrique M-12 (ligne d'emballage)
+Technicien : Fatima Zohra Meddahi
+Durée d'intervention : 2h00
+
+Description du problème :
+Le moteur M-12 s'est de nouveau arrêté par sécurité thermique ce matin,
+20 jours seulement après le nettoyage réalisé lors de la précédente
+intervention (RM-2026-0900). Même symptôme : surchauffe après un
+fonctionnement prolongé.
+
+Diagnostic :
+Le ventilateur de refroidissement est de nouveau fortement encrassé.
+L'environnement de la ligne d'emballage génère beaucoup de poussière
+fine, et un simple nettoyage périodique classique ne suffit
+visiblement pas à empêcher le réencrassement rapide.
+
+Action réalisée :
+- Nettoyage complet du ventilateur et des ailettes
+- Installation d'un filtre à poussière en amont de l'entrée d'air
+  du moteur (mesure corrective renforcée, différente de la
+  précédente intervention)
+- Test de fonctionnement en continu sur 2h : température stable
+
+Recommandations :
+- Le problème est revenu malgré une intervention précédente jugée
+  conforme : la cause racine (encrassement rapide dû à la poussière
+  ambiante) n'avait pas été traitée, seulement le symptôme
+- Surveiller l'efficacité du nouveau filtre sur les 30 prochains jours
+- Si le problème persiste malgré le filtre, envisager un carter de
+  protection complet contre la poussière
+
+Pièces utilisées : 1x filtre à poussière (réf. FA-220)
+Statut : Intervention clôturée - suivi actif

@@ -1,0 +1,28 @@
+RAPPORT D'INTERVENTION DE MAINTENANCE
+
+Référence : RM-2026-0851
+Date d'intervention : 15/09/2026
+Site : Unité de production - Zone A
+Équipement concerné : Compresseur d'air CA-101
+Technicien : Fatima Zohra Meddahi
+Durée d'intervention : 45 min
+
+Description du problème :
+Alarme de basse pression déclenchée automatiquement sur le tableau
+de contrôle. Aucun bruit anormal signalé par les opérateurs.
+
+Diagnostic :
+Fuite mineure identifiée au niveau d'un raccord pneumatique sur la
+ligne de refoulement. Pas d'antécédent similaire sur cet équipement.
+
+Action réalisée :
+- Resserrage du raccord
+- Test d'étanchéité au savon : conforme
+- Remise en pression progressive
+
+Recommandations :
+- Aucune action complémentaire nécessaire
+- Contrôle visuel de routine lors de la prochaine ronde
+
+Pièces utilisées : Aucune
+Statut : Intervention clôturée

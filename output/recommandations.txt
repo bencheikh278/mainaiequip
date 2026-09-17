@@ -1,0 +1,26 @@
+=== RECOMMANDATIONS ===
+
+[HAUTE] Pompe centrifuge P-204
+  Action : Programmer une inspection vibratoire et investiguer la qualité du lubrifiant ainsi que le problème structurel récurrent.
+  Justification : Cet équipement présente une récidive active avec des vibrations persistantes après de multiples interventions.
+
+[HAUTE] Moteur électrique M-12
+  Action : Surveiller l'efficacité du nouveau filtre à poussière sur les 30 prochains jours et planifier un nettoyage régulier.
+  Justification : Il s'agit d'une récidive de surchauffe liée à un environnement poussiéreux.
+
+[MOYENNE] Convoyeur à bande CB-310
+  Action : Mettre en place un nettoyage préventif hebdomadaire et étudier l'installation d'un racleur de bande.
+  Justification : Le convoyeur a subi plusieurs pannes similaires en un mois dues à l'accumulation de matière.
+
+[BASSE] VT-45
+  Action : Vérifier la tension et l'alignement des poulies et garder un œil sur l'usure de la courroie.
+  Justification : L'intervention est résolue mais il convient de comprendre l'usure rapide constatée.
+
+[BASSE] Compresseur d'air CA-101
+  Action : Effectuer un contrôle visuel de routine lors de la prochaine ronde.
+  Justification : L'incident est résolu et aucune action corrective majeure n'est requise.
+
+[BASSE] Groupe électrogène GE-02 (secours)
+  Action : Planifier le prochain contrôle trimestriel dans 3 mois.
+  Justification : L'appoint d'huile et les tests se sont avérés pleinement conformes.
+

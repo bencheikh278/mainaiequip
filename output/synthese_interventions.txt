@@ -1,0 +1,30 @@
+=== SYNTHESE DES INTERVENTIONS ===
+
+VT-45 (1 intervention(s))
+  Apparition d'un bruit bizarre et d'un arrêt soudain causés par une courroie
+  usée et des problèmes de poulies. Remplacement de la courroie effectué,
+  l'équipement est de nouveau opérationnel.
+
+Pompe centrifuge P-204 (2 intervention(s))
+  Présence de vibrations et d'un défaut de lubrification corrigés par un
+  remplacement de roulement et un réalignement. Suite à une récidive de
+  vibrations, un réajustement fin de l'alignement laser a été réalisé.
+
+Convoyeur à bande CB-310 (1 intervention(s))
+  Arrêt complet dû à une surcharge par désalignement et accumulation de matière.
+  Un nettoyage et un réalignement complet de la bande ont permis de stabiliser
+  l'équipement.
+
+Compresseur d'air CA-101 (1 intervention(s))
+  Alarme de basse pression causée par une fuite sur un raccord pneumatique. Le
+  raccord a été resserré et l'étanchéité a été validée avec succès.
+
+Groupe électrogène GE-02 (secours) (1 intervention(s))
+  Niveau d'huile bas nécessitant un appoint et un contrôle des connexions. Le
+  test de démarrage automatique s'est révélé conforme.
+
+Moteur électrique M-12 (2 intervention(s))
+  Surchauffe due à l'encrassement du ventilateur par la poussière ambiante
+  menant à des arrêts thermiques répétés. Un nettoyage approfondi et
+  l'installation d'un filtre à poussière ont stabilisé la température.
+
