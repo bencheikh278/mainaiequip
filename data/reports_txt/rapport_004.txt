@@ -1,0 +1,15 @@
+During the morning inspection, the compressor C-102 showed
+higher vibration than usual. The maintenance team stopped the
+unit and inspected the motor side. The bearing was found worn
+and was replaced. After restarting, vibration levels were
+acceptable.
+
+At the same time, pump P-204 was showing a pressure drop.
+Inspection revealed a small leakage around the mechanical seal.
+The seal was replaced and the pump was tested for 30 minutes.
+No further leakage was observed.
+
+The heat exchanger E-301 was also inspected because the outlet
+temperature was higher than normal. Deposits were found on the
+heat transfer surfaces. Cleaning was carried out and the
+temperature returned to normal.

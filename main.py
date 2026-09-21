@@ -1,59 +1,46 @@
 import os
-import json
-import textwrap
+import hashlib
 from datetime import datetime
+
+import bdd
 
 from extract import extract_text
 from agent import analyser_rapport, synthese_globale
 
 
-FICHIER_HISTORIQUE = "output/historique.json"
+# CALCULER LE HASH DU CONTENU POUR VOIR C'EST LE FICHIER DEJA EXIST OU PAS 
+
+def calculer_hash(texte):
 
 
-def charger_historique():
+    contenu = texte.encode(
+        "utf-8"
+    )
 
-    if not os.path.exists(FICHIER_HISTORIQUE):
-        return []
+    hash_sha256 = hashlib.sha256(
+        contenu
+    ).hexdigest()
 
-    with open(
-        FICHIER_HISTORIQUE,
-        "r",
-        encoding="utf-8"
-    ) as file:
-
-        return json.load(file)
+    return hash_sha256
 
 
-def sauvegarder_historique(historique):
-
-    os.makedirs("output", exist_ok=True)
-
-    with open(
-        FICHIER_HISTORIQUE,
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            historique,
-            file,
-            ensure_ascii=False,
-            indent=2
-        )
-
+# ============================================================
+# ANALYSER LES DOSSIERS
+# ============================================================
 
 def analyser_dossier(*dossiers):
 
-    historique = charger_historique()
+    connexion = bdd.connecter()
 
-    fichiers_deja_connus = {
-        rapport["fichier"]
-        for rapport in historique
-    }
+   #LES RAPPORT UTULISER 
+    rapports_selectionnes = []
 
+   
     for dossier in dossiers:
 
-        if not os.path.isdir(dossier):
+        if not os.path.isdir(
+            dossier
+        ):
 
             print(
                 f"{dossier} : dossier introuvable"
@@ -65,43 +52,110 @@ def analyser_dossier(*dossiers):
             os.listdir(dossier)
         ):
 
-            if nom_fichier in fichiers_deja_connus:
-
-                print(
-                    f"{nom_fichier} : déjà analysé"
-                )
-
-                continue
-
             chemin = os.path.join(
                 dossier,
                 nom_fichier
             )
 
+          
+            if not os.path.isfile(
+                chemin
+            ):
+
+                continue
+
+            #EXTRACTION DE TEXT 
             print(
-                f"{nom_fichier} : extraction..."
+                f"\n{nom_fichier} : extraction..."
             )
 
-            texte = extract_text(chemin)
+            try:
 
+                texte = extract_text(
+                    chemin
+                )
+
+            except Exception as error:
+
+                print(
+                    f"{nom_fichier} : "
+                    f"erreur extraction : {error}"
+                )
+
+                continue
+
+           
             if not texte:
 
                 print(
-                    f"{nom_fichier} : format non supporté"
+                    f"{nom_fichier} : "
+                    f"fichier vide ou illisible"
                 )
 
                 continue
 
-            if len(texte.strip()) < 30:
+            if len(
+                texte.strip()
+            ) < 30:
 
                 print(
-                    f"{nom_fichier} : fichier vide ou illisible"
+                    f"{nom_fichier} : "
+                    f"fichier vide ou illisible"
                 )
 
                 continue
 
+            #CALCULER LE HASH
+            hash_contenu = calculer_hash(
+                texte
+            )
+
             print(
-                f"{nom_fichier} : analyse IA..."
+                f"{nom_fichier} : "
+                f"hash = {hash_contenu[:12]}..."
+            )
+
+            #VERIFY IF THE RAPPORT DEJA ANALISED
+            if bdd.rapport_existe_par_hash(
+                connexion,
+                hash_contenu
+            ):
+
+                print(
+                    f"{nom_fichier} : "
+                    f"contenu déjà analysé"
+                )
+
+                donnees_existantes = (
+                    bdd.recuperer_rapport_par_hash(
+                        connexion,
+                        hash_contenu
+                    )
+                )
+
+             
+                if donnees_existantes:
+
+                   
+                    donnees_existantes[
+                        "fichier"
+                    ] = nom_fichier
+
+                    rapports_selectionnes.append(
+                        donnees_existantes
+                    )
+
+                continue
+
+            #NEW CONTENT
+            print(
+                f"{nom_fichier} : "
+                f"nouveau contenu"
+            )
+
+            print(
+                f"{nom_fichier} : "
+                f"analyse IA..."
             )
 
             try:
@@ -113,142 +167,251 @@ def analyser_dossier(*dossiers):
             except Exception as error:
 
                 print(
-                    f"Erreur : {error}"
+                    f"{nom_fichier} : "
+                    f"Erreur IA : {error}"
                 )
 
                 continue
 
-            donnees["fichier"] = nom_fichier
+            #AJOUTER LES INFO DE FICHIER
+            donnees[
+                "fichier"
+            ] = nom_fichier
 
-            donnees["analyse_le"] = (
-                datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+            donnees[
+                "hash_contenu"
+            ] = hash_contenu
+
+            donnees[
+                "analyse_le"
+            ] = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
             )
 
-            historique.append(donnees)
+            # =================================================
+            # SAUVEGARDER DANS SQLITE
+            # =================================================
 
-            fichiers_deja_connus.add(
-                nom_fichier
+            bdd.inserer_rapport(
+                connexion,
+                donnees
             )
 
-            sauvegarder_historique(
-                historique
+            # =================================================
+            # AJOUTER À LA SYNTHÈSE
+            # =================================================
+
+            rapports_selectionnes.append(
+                donnees
             )
 
             print(
                 f"{nom_fichier} : terminé"
             )
 
-    return historique
+    # ========================================================
+    # FERMER SQLITE
+    # ========================================================
 
+    connexion.close()
+
+    return rapports_selectionnes
+
+
+# ============================================================
+#                    PROGRAMME PRINCIPAL
+# ============================================================
 
 def main():
 
-    historique = analyser_dossier(
-        "data/reports_txt",
-        "data/reports_pdf",
-        "data/reports_docx"
-    )
+    # ========================================================
+    # 1. ANALYSER 
+    # ========================================================
 
-    print(
-        f"\nNombre de rapports : {len(historique)}"
-    )
+    rapports_selectionnes = analyser_dossier(
 
-    if not historique:
+        "data/reports_txt" )
 
-        print("Aucun rapport à analyser.")
+    #AUCUN RAPPORT
+    if not rapports_selectionnes:
+
+        print(
+            "\nAucun rapport à analyser."
+        )
 
         return
 
     print(
-        "\nGénération de la synthèse et des recommandations..."
+        f"\nRapports utilisés pour cette analyse : "
+        f"{len(rapports_selectionnes)}"
+    )
+
+    # ========================================================
+    # 2. RÉCUPÉRER L'HISTORIQUE
+    # ========================================================
+
+    connexion = bdd.connecter()
+
+    historique = bdd.recuperer_historique(
+        connexion
+    )
+
+    connexion.close()
+
+    print(
+        f"Historique total dans SQLite : "
+        f"{len(historique)} rapports"
+    )
+
+    # ========================================================
+    # 3. SYNTHÈSE + RECOMMANDATIONS
+    # ========================================================
+
+    print(
+        "\nGénération de la synthèse "
+        "et des recommandations..."
     )
 
     try:
 
         synthese = synthese_globale(
+            rapports_selectionnes,
             historique
         )
+
+        # ====================================================
+        # CRÉER OUTPUT
+        # ====================================================
 
         os.makedirs(
             "output",
             exist_ok=True
         )
 
-        # livrable 1 : synthese des interventions realisees, par equipement
+        # ====================================================
+        # SAUVEGARDER LA SYNTHÈSE
+        # ====================================================
+
         with open(
             "output/synthese_interventions.txt",
             "w",
             encoding="utf-8"
         ) as file:
 
-            file.write("=== SYNTHESE DES INTERVENTIONS ===\n\n")
+            file.write(
+                "=== SYNTHESE DES INTERVENTIONS ===\n\n"
+            )
 
-            for item in synthese["synthese_interventions"]:
+            for item in synthese[
+                "synthese_interventions"
+            ]:
 
                 file.write(
-                    f"{item['equipement']} ({item['nb_interventions']} intervention(s))\n"
+                    f"{item['equipement']} "
+                    f"({item['nb_interventions']} "
+                    f"intervention(s))\n"
                 )
 
-                resume_formate = textwrap.fill(
-                    item['resume'],
-                    width=80,
-                    initial_indent="  ",
-                    subsequent_indent="  "
+                file.write(
+                    f"  {item['resume']}\n\n"
                 )
 
-                file.write(f"{resume_formate}\n\n")
+        # ====================================================
+        # SAUVEGARDER LES RECOMMANDATIONS
+        # ====================================================
 
-        # livrable 2 : recommandations, priorisees
         with open(
             "output/recommandations.txt",
             "w",
             encoding="utf-8"
         ) as file:
 
-            file.write("=== RECOMMANDATIONS ===\n\n")
+            file.write(
+                "=== RECOMMANDATIONS ===\n\n"
+            )
 
-            for r in synthese["recommandations"]:
+            for recommandation in synthese[
+                "recommandations"
+            ]:
 
                 file.write(
-                    f"[{r['priorite'].upper()}] {r['equipement']}\n"
+                    f"[{recommandation['priorite'].upper()}] "
+                    f"{recommandation['equipement']}\n"
                 )
+
                 file.write(
-                    f"  Action : {r['action']}\n"
+                    f"  Action : "
+                    f"{recommandation['action']}\n"
                 )
+
                 file.write(
-                    f"  Justification : {r['justification']}\n\n"
+                    f"  Justification : "
+                    f"{recommandation['justification']}\n\n"
                 )
+
+        # ====================================================
+        # AFFICHER LA SYNTHÈSE
+        # ====================================================
 
         print(
             "\n=== SYNTHESE DES INTERVENTIONS ===\n"
         )
-        for item in synthese["synthese_interventions"]:
+
+        for item in synthese[
+            "synthese_interventions"
+        ]:
+
             print(
-                f"{item['equipement']} ({item['nb_interventions']} intervention(s))"
+                f"{item['equipement']} "
+                f"({item['nb_interventions']} "
+                f"intervention(s))"
             )
-            resume_formate = textwrap.fill(
-                item['resume'],
-                width=80,
-                initial_indent="  ",
-                subsequent_indent="  "
+
+            print(
+                f"  {item['resume']}\n"
             )
-            print(f"{resume_formate}\n")
+
+        # ====================================================
+        # AFFICHER LES RECOMMANDATIONS
+        # ====================================================
 
         print(
             "=== RECOMMANDATIONS ===\n"
         )
-        for r in synthese["recommandations"]:
+
+        for recommandation in synthese[
+            "recommandations"
+        ]:
+
             print(
-                f"[{r['priorite'].upper()}] {r['equipement']} : {r['action']}"
+                f"[{recommandation['priorite'].upper()}] "
+                f"{recommandation['equipement']}"
             )
 
+            print(
+                f"  Action : "
+                f"{recommandation['action']}"
+            )
+
+            print(
+                f"  Justification : "
+                f"{recommandation['justification']}\n"
+            )
+
+        # ====================================================
+        # FICHIERS CRÉÉS
+        # ====================================================
+
         print(
-            "\n-> output/synthese_interventions.txt"
+            "Fichiers générés :"
         )
+
         print(
-            "-> output/recommandations.txt"
+            "synthese_interventions.txt"
+        )
+
+        print(
+            "recommandations.txt"
         )
 
     except Exception as error:

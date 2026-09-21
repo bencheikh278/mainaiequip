@@ -1,26 +1,22 @@
 === RECOMMANDATIONS ===
 
+[MOYENNE] C-102
+  Action : Planifier une surveillance régulière du niveau d'huile et des températures moteur.
+  Justification : Le compresseur a présenté des anomalies liées à une quantité insuffisante d'huile et une température de moteur légèrement supérieure à la normale, suggérant la nécessité d'un suivi préventif de la lubrification.
+
+[FAIBLE] P-204
+  Action : Surveiller l'étanchéité des raccordements et du joint mécanique lors des prochains cycles de production.
+  Justification : Des interventions de remplacement de joint et de resserrage ont été effectuées avec succès, rendant un contrôle préventif pertinent pour éviter toute récidive de fuite.
+
+[MOYENNE] E-301
+  Action : Mettre en place un plan de nettoyage périodique des surfaces de transfert thermique.
+  Justification : Des dépôts ont été trouvés sur les surfaces d'échange, provoquant une élévation anormale de la température de sortie résolue par un nettoyage.
+
 [HAUTE] Pompe centrifuge P-204
-  Action : Programmer une inspection vibratoire et investiguer la qualité du lubrifiant ainsi que le problème structurel récurrent.
-  Justification : Cet équipement présente une récidive active avec des vibrations persistantes après de multiples interventions.
+  Action : Maintenir un suivi vibratoire rapproché et planifier une inspection du plan de lubrification.
+  Justification : La pompe a présenté des vibrations récurrentes 9 jours après le remplacement du roulement en raison d'un défaut de lubrification initial et d'un alignement résiduel, nécessitant une vigilance accrue.
 
-[HAUTE] Moteur électrique M-12
-  Action : Surveiller l'efficacité du nouveau filtre à poussière sur les 30 prochains jours et planifier un nettoyage régulier.
-  Justification : Il s'agit d'une récidive de surchauffe liée à un environnement poussiéreux.
-
-[MOYENNE] Convoyeur à bande CB-310
-  Action : Mettre en place un nettoyage préventif hebdomadaire et étudier l'installation d'un racleur de bande.
-  Justification : Le convoyeur a subi plusieurs pannes similaires en un mois dues à l'accumulation de matière.
-
-[BASSE] VT-45
-  Action : Vérifier la tension et l'alignement des poulies et garder un œil sur l'usure de la courroie.
-  Justification : L'intervention est résolue mais il convient de comprendre l'usure rapide constatée.
-
-[BASSE] Compresseur d'air CA-101
-  Action : Effectuer un contrôle visuel de routine lors de la prochaine ronde.
-  Justification : L'incident est résolu et aucune action corrective majeure n'est requise.
-
-[BASSE] Groupe électrogène GE-02 (secours)
-  Action : Planifier le prochain contrôle trimestriel dans 3 mois.
-  Justification : L'appoint d'huile et les tests se sont avérés pleinement conformes.
+[HAUTE] Convoyeur à bande CB-310
+  Action : Inspecter régulièrement l'état de la bande, le système de raclage et l'alignement du tapis.
+  Justification : L'équipement a subi un troisième déclenchement de disjoncteur en un mois causé par un désalignement progressif et une accumulation de matière, indiquant un risque de récidive élevé sans surveillance ciblée.
 
