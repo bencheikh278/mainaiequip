@@ -1,22 +1,14 @@
 === RECOMMANDATIONS ===
 
-[MOYENNE] C-102
-  Action : Planifier une surveillance régulière du niveau d'huile et des températures moteur.
-  Justification : Le compresseur a présenté des anomalies liées à une quantité insuffisante d'huile et une température de moteur légèrement supérieure à la normale, suggérant la nécessité d'un suivi préventif de la lubrification.
+[HAUTE] C-102
+  Action : Effectuer un suivi régulier du niveau de lubrification et des vibrations en charge.
+  Justification : L'équipement a présenté des problèmes d'usure de roulement, de manque d'huile et d'élévation de la température moteur, nécessitant une surveillance préventive pour éviter toute récidive.
 
-[FAIBLE] P-204
-  Action : Surveiller l'étanchéité des raccordements et du joint mécanique lors des prochains cycles de production.
-  Justification : Des interventions de remplacement de joint et de resserrage ont été effectuées avec succès, rendant un contrôle préventif pertinent pour éviter toute récidive de fuite.
+[MOYENNE] P-204
+  Action : Surveiller l'étanchéité au niveau du joint mécanique lors des prochains cycles de fonctionnement.
+  Justification : Une fuite a été observée et le joint a été remplacé, un contrôle post-intervention est donc conseillé pour valider la tenue dans le temps.
 
 [MOYENNE] E-301
-  Action : Mettre en place un plan de nettoyage périodique des surfaces de transfert thermique.
-  Justification : Des dépôts ont été trouvés sur les surfaces d'échange, provoquant une élévation anormale de la température de sortie résolue par un nettoyage.
-
-[HAUTE] Pompe centrifuge P-204
-  Action : Maintenir un suivi vibratoire rapproché et planifier une inspection du plan de lubrification.
-  Justification : La pompe a présenté des vibrations récurrentes 9 jours après le remplacement du roulement en raison d'un défaut de lubrification initial et d'un alignement résiduel, nécessitant une vigilance accrue.
-
-[HAUTE] Convoyeur à bande CB-310
-  Action : Inspecter régulièrement l'état de la bande, le système de raclage et l'alignement du tapis.
-  Justification : L'équipement a subi un troisième déclenchement de disjoncteur en un mois causé par un désalignement progressif et une accumulation de matière, indiquant un risque de récidive élevé sans surveillance ciblée.
+  Action : Planifier une inspection périodique de l'encrassement des surfaces d'échange.
+  Justification : Des dépôts ont été trouvés sur les surfaces de transfert thermique, provoquant une élévation anormale de la température de sortie.
 

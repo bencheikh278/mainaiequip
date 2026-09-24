@@ -11,11 +11,6 @@ CHEMIN_DB = "output/synia.db"
 
 def connecter():
 
-    """
-    Ouvre la base SQLite et crée les tables
-    si elles n'existent pas.
-    """
-
     os.makedirs(
         "output",
         exist_ok=True
@@ -111,11 +106,6 @@ def rapport_existe_par_hash(
     connexion,
     hash_contenu
 ):
-
-    """
-    Vérifie si le contenu du rapport
-    a déjà été analysé.
-    """
 
     resultat = connexion.execute(
         """
@@ -415,7 +405,7 @@ def inserer_rapport(
         # ====================================================
         # INSÉRER LES ANOMALIES
         # ====================================================
-
+    
         for anomalie in eq.get(
             "anomalies",
             []

@@ -1,17 +1,11 @@
 === SYNTHESE DES INTERVENTIONS ===
 
 C-102 (3 intervention(s))
-  Interventions réalisées suite à des vibrations élevées, bruit anormal, usure de roulement, température élevée et niveau d'huile insuffisant. Les actions menées incluent : arrêt de l'équipement, inspection du côté moteur, remplacement du roulement usé, contrôle et réglage de l'alignement, vérification du niveau de lubrification, vidange partielle, complément d'huile et redémarrage. Les résultats montrent des vibrations revenues à des niveaux acceptables et normaux, plus de bruit anormal, et l'équipement remis en fonctionnement.
+  Interventions réalisées incluant l'arrêt de l'équipement, l'inspection du côté moteur, la vérification du niveau de lubrification, une vidange partielle, un complément d'huile, le remplacement à plusieurs reprises du roulement usé, le contrôle de l'alignement et la remise en service avec des niveaux de vibrations redevenus normaux ou acceptables.
 
 P-204 (2 intervention(s))
-  Interventions réalisées suite à une perte de pression, un débit plus faible et une fuite au niveau du joint de la pompe. Les actions menées incluent : inspection, remplacement du joint, resserrage des raccordements et essai de fonctionnement pendant environ trente minutes. Les résultats indiquent que la pression est redevenue normale et qu'aucune fuite n'a été observée pendant l'essai.
+  Interventions réalisées incluant l'inspection, le remplacement du joint (ou seal), le resserrement des raccordements et un essai de fonctionnement d'environ trente minutes, permettant de rétablir une pression normale et d'éliminer les fuites.
 
 E-301 (1 intervention(s))
-  Intervention réalisée suite à une température de sortie plus élevée que la normale et la présence de dépôts sur les surfaces de transfert thermique. Les actions menées incluent : inspection et nettoyage des surfaces. Le résultat obtenu est un retour à la normale de la température.
-
-Pompe centrifuge P-204 (2 intervention(s))
-  Interventions réalisées suite à des vibrations anormales, un niveau sonore élevé, un échauffement et un jeu excessif du roulement, suivies 9 jours plus tard par un signalement de vibration légère et un défaut d'alignement résiduel. Les actions menées incluent : démontage partiel, remplacement du roulement défectueux (réf. SKF 6208-2RS), re-graissage complet, contrôle d'alignement laser, test de fonctionnement, mesure vibratoire et réajustement fin de l'alignement laser. L'intervention a été clôturée avec un suivi actif.
-
-Convoyeur à bande CB-310 (1 intervention(s))
-  Intervention réalisée suite à un arrêt complet (déclenchement du disjoncteur moteur pour la 3e fois en un mois), un désalignement progressif du tapis et une accumulation de matière sous la bande côté tambour de renvoi. Les actions menées incluent : nettoyage complet sous le tambour de renvoi, réalignement de la bande, vérification de la tension du tapis, réarmement et test en charge sur 30 minutes. L'intervention a été clôturée avec un test stable, nécessitant un suivi.
+  Interventions réalisées incluant l'inspection de l'échangeur thermique et le nettoyage des surfaces de transfert thermique, ce qui a permis de faire redescendre la température de sortie à la normale.
 

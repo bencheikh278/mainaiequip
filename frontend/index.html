@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SynIA</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <!-- LOGO -->
+
+        <div class="sidebar-logo">
+
+            <img
+                src="assets/icons/logo.png"
+                alt="SynIA"
+            >
+
+            <div class="sidebar-brand-name">
+
+                <span class="syn">
+                    Syn
+                </span>
+
+                <span class="ia">
+                    IA
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- NAVIGATION -->
+
+        <nav class="sidebar-nav">
+
+
+            <!-- ACCUEIL -->
+
+            <button
+                class="nav-item active"
+                data-page="home"
+                type="button"
+            >
+
+                <img
+                    src="assets/icons/home.png"
+                    alt=""
+                >
+
+                <span>
+                    Accueil
+                </span>
+
+            </button>
+
+
+
+            <!-- ANALYSER -->
+
+            <button
+                class="nav-item"
+                data-page="analyse"
+                type="button"
+            >
+
+                <img
+                    src="assets/icons/analyse.png"
+                    alt=""
+                >
+
+                <span>
+                    Analyser
+                </span>
+
+            </button>
+
+
+
+            <!-- HISTORIQUE -->
+
+            <button
+                class="nav-item"
+                data-page="historique"
+                type="button"
+            >
+
+                <img
+                    src="assets/icons/historique.png"
+                    alt=""
+                >
+
+                <span>
+                    Historique
+                </span>
+
+            </button>
+
+
+
+            <!-- PARAMETRES -->
+
+            <button
+                class="nav-item"
+                data-page="parametres"
+                type="button"
+            >
+
+                <img
+                    src="assets/icons/parametre.png"
+                    alt=""
+                >
+
+                <span>
+                    Paramètres
+                </span>
+
+            </button>
+
+
+        </nav>
+
+
+        <!-- SIDEBAR BOTTOM -->
+
+        <div class="sidebar-bottom">
+
+         <div class="sidebar-line"></div>
+
+       <span>
+        SynIA
+      </span>
+
+       <small>
+        Assistant de maintenance
+      </small>
+
+      <img
+        class="sonatrach-logo"
+        src="assets/icons/sonatrach.png"
+        alt="Sonatrach"
+      >
+
+      </div>
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main class="content">
+
+
+
+        <!-- =================================================
+             HOME PAGE
+        ================================================== -->
+
+        <section
+            id="page-home"
+            class="page page-home active"
+        >
+
+            <div class="home-inner">
+
+
+                <!-- EYEBROW -->
+
+                <div class="eyebrow">
+                    ASSISTANT DE MAINTENANCE
+                </div>
+
+
+
+                <!-- TITLE -->
+
+                <h1 class="home-title">
+
+                    Des documents clairs,
+                    <br>
+
+                    <span>
+                        des actions utiles.
+                    </span>
+
+                </h1>
+
+
+
+                <!-- DESCRIPTION -->
+
+                <p class="home-description">
+
+                    Déposez vos documents de maintenance et obtenez
+                    rapidement une synthèse claire ainsi que des
+                    recommandations adaptées.
+
+                </p>
+
+
+
+                <!-- MAIN BUTTON -->
+
+                <button
+                    id="goAnalyse"
+                    class="orange-button"
+                    type="button"
+                >
+
+                    <span>
+                        Analyser un document
+                    </span>
+
+                    <img
+                        src="assets/icons/goto.png"
+                        alt=""
+                    >
+
+                </button>
+
+
+
+                <!-- FILE HINT -->
+
+                <div class="file-hint">
+
+                    Ajoutez un ou plusieurs documents : PDF, DOCX, XLSX, TXT, PNG ou JPG.
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     HOW IT WORKS
+                =========================================== -->
+
+                <section class="how-section">
+
+
+                    <h2>
+                        Comment ça fonctionne
+                    </h2>
+
+
+
+                    <div class="how-grid">
+
+
+                        <!-- STEP 01 -->
+
+                        <article class="how-card">
+
+                            <div class="how-number">
+                                01
+                            </div>
+
+                            <h3>
+                                Déposez vos documents
+                            </h3>
+
+                            <p>
+                                Importez vos documents de maintenance
+                                en quelques secondes.
+                            </p>
+
+                        </article>
+
+
+
+                        <!-- STEP 02 -->
+
+                        <article class="how-card">
+
+                            <div class="how-number">
+                                02
+                            </div>
+
+                            <h3>
+                                Obtenez une synthèse
+                            </h3>
+
+                            <p>
+                                SynIA identifie les équipements,
+                                les anomalies et les interventions
+                                réalisées.
+                            </p>
+
+                        </article>
+
+
+
+                        <!-- STEP 03 -->
+
+                        <article class="how-card">
+
+                            <div class="how-number">
+                                03
+                            </div>
+
+                            <h3>
+                                Consultez les recommandations
+                            </h3>
+
+                            <p>
+                                SynIA propose les prochaines actions
+                                à envisager.
+                            </p>
+
+                        </article>
+
+
+                    </div>
+
+
+                </section>
+
+
+
+                <!-- ==========================================
+                     RECENT ANALYSES
+                =========================================== -->
+
+                <section class="recent-section">
+
+
+                    <div class="section-header">
+
+
+                        <h2>
+                            Vos dernières analyses
+                        </h2>
+
+
+                        <button
+                            class="text-button"
+                            data-page="historique"
+                            type="button"
+                        >
+                            Voir l'historique
+                        </button>
+
+
+                    </div>
+
+
+
+                    <!-- RECENT ITEM 1 -->
+
+                    <div class="recent-item">
+
+
+                        <div class="document-mini-icon">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                        <div class="recent-main">
+
+                            <strong>
+                                Rapport de maintenance
+                            </strong>
+
+                            <span>
+                                Dernière analyse
+                            </span>
+
+                        </div>
+
+
+                        <span class="recent-status">
+                            Terminé
+                        </span>
+
+
+                    </div>
+
+
+
+                    <!-- RECENT ITEM 2 -->
+
+                    <div class="recent-item">
+
+
+                        <div class="document-mini-icon">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                        <div class="recent-main">
+
+                            <strong>
+                                Rapport équipement
+                            </strong>
+
+                            <span>
+                                Analyse enregistrée
+                            </span>
+
+                        </div>
+
+
+                        <span class="recent-status">
+                            Terminé
+                        </span>
+
+
+                    </div>
+
+
+                </section>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             ANALYSE PAGE
+        ================================================== -->
+
+        <section
+            id="page-analyse"
+            class="page page-analyse"
+        >
+
+            <div class="analyse-inner">
+
+
+                <!-- EYEBROW -->
+
+                <div class="eyebrow">
+                    NOUVELLE ANALYSE
+                </div>
+
+
+
+                <!-- TITLE -->
+
+                <h1 class="page-title">
+                    Un rapport à comprendre ?
+                </h1>
+
+
+
+                <!-- DESCRIPTION -->
+
+                <p class="page-description">
+
+                    Déposez votre rapport. SynIA en extrait les
+                    informations essentielles pour vous aider
+                    à décider plus vite.
+
+                </p>
+
+
+
+                <!-- ==========================================
+                     UPLOAD ZONE
+                =========================================== -->
+
+                <div
+                    id="uploadZone"
+                    class="upload-zone"
+                >
+
+
+                    <!-- UPLOAD ICON -->
+
+                    <div class="upload-icon">
+
+                        <img
+                            src="assets/icons/upload.png"
+                            alt="Upload"
+                        >
+
+                    </div>
+
+
+
+                    <!-- TITLE -->
+
+                    <h2>
+                        Déposez votre rapport ici
+                    </h2>
+
+
+
+                    <!-- DESCRIPTION -->
+
+                    <p>
+                        ou sélectionnez un fichier depuis votre ordinateur
+                    </p>
+
+
+
+                    <!-- CHOOSE FILE BUTTON -->
+
+                    <label
+                        for="fileInput"
+                        class="choose-button"
+                    >
+
+                        Parcourir les fichiers
+
+                    </label>
+
+
+
+                    <!-- REAL FILE INPUT -->
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                        accept=".pdf,.docx,.xlsx,.xls,.txt,.png,.jpg,.jpeg"
+                    >
+
+
+
+                    <!-- FILE TYPES -->
+
+                    <small>
+
+                        PDF · DOCX · XLSX · TXT · PNG · JPG
+
+                        <br>
+
+                        20 Mo maximum
+
+                    </small>
+
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     SELECTED FILE
+                =========================================== -->
+
+                <div
+                    id="filePreview"
+                    class="file-preview"
+                >
+
+
+                    <div class="file-preview-left">
+
+
+                        <div class="file-preview-icon">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                        <div>
+
+                            <strong id="fileName">
+                            </strong>
+
+                            <span id="fileSize">
+                            </span>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- REMOVE -->
+
+                    <button
+                        id="removeFile"
+                        class="remove-file"
+                        type="button"
+                    >
+
+                        <img
+                            src="assets/icons/x.png"
+                            alt="Supprimer"
+                        >
+
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     ERROR
+                =========================================== -->
+
+                <div
+                    id="errorMessage"
+                    class="error-box"
+                >
+
+                    <img
+                        src="assets/icons/danger.png"
+                        alt=""
+                    >
+
+                    <span>
+                    </span>
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     LOADING
+                =========================================== -->
+
+                <div
+                    id="loading"
+                    class="loading-box"
+                >
+
+                    <div class="spinner">
+                    </div>
+
+
+                    <div>
+
+                        <strong>
+                            Analyse en cours
+                        </strong>
+
+                        <span>
+                            SynIA traite votre rapport...
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     ANALYSE BUTTON
+                =========================================== -->
+
+                <button
+                    id="analyseBtn"
+                    class="analyse-main-button"
+                    type="button"
+                    disabled
+                >
+
+                    <span>
+                        Analyser maintenant
+                    </span>
+
+                    <img
+                        src="assets/icons/goto.png"
+                        alt=""
+                    >
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             RESULT PAGE
+        ================================================== -->
+
+        <section
+            id="page-result"
+            class="page page-result"
+        >
+
+            <div class="result-inner">
+
+
+                <!-- EYEBROW -->
+
+                <div class="eyebrow">
+                    ANALYSE TERMINÉE
+                </div>
+
+
+
+                <!-- HEADER -->
+
+                <div class="result-heading">
+
+
+                    <div>
+
+                        <h1 class="page-title">
+                            Résultats de l'analyse
+                        </h1>
+
+
+                        <p class="page-description">
+
+                            Voici les informations extraites
+                            et analysées par SynIA.
+
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- STATUS -->
+
+                    <div class="result-ok">
+
+                        <img
+                            src="assets/icons/nice.png"
+                            alt=""
+                        >
+
+                        <span>
+                            Analyse terminée
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     RESULTS
+                =========================================== -->
+
+                <div
+                    id="resultContent"
+                    class="result-content"
+                >
+                </div>
+
+
+
+                <!-- ==========================================
+                     ACTION BUTTONS
+                =========================================== -->
+
+                <div class="result-buttons">
+
+
+                    <!-- DOWNLOAD -->
+
+                    <button
+                        id="downloadBtn"
+                        class="result-primary-button"
+                        type="button"
+                    >
+
+                        <img
+                            src="assets/icons/download.png"
+                            alt=""
+                        >
+
+                        <span>
+                            Télécharger
+                        </span>
+
+                    </button>
+
+
+
+                    <!-- JSON -->
+
+                    <button
+                        id="exportJsonBtn"
+                        class="result-secondary-button"
+                        type="button"
+                    >
+
+                        Exporter en JSON
+
+                    </button>
+
+
+
+                    <!-- NEW -->
+
+                    <button
+                        id="newAnalysisBtn"
+                        class="result-link-button"
+                        type="button"
+                    >
+
+                        Nouvelle analyse
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             HISTORIQUE PAGE
+        ================================================== -->
+
+        <section
+            id="page-historique"
+            class="page page-history"
+        >
+
+            <div class="history-inner">
+
+
+                <div class="eyebrow">
+                    HISTORIQUE
+                </div>
+
+
+
+                <h1 class="page-title">
+                    Historique des analyses
+                </h1>
+
+
+
+                <p class="page-description">
+
+                    Retrouvez vos rapports déjà analysés.
+
+                </p>
+
+
+
+                <!-- ==========================================
+                     HISTORY TABLE
+                =========================================== -->
+
+                <div class="history-table">
+
+
+                    <!-- HEADER -->
+
+                    <div class="history-row history-header">
+
+
+                        <span>
+                            Document
+                        </span>
+
+
+                        <span>
+                            Date
+                        </span>
+
+
+                        <span>
+                            Statut
+                        </span>
+
+
+                    </div>
+
+
+
+                    <!-- ROW 1 -->
+
+                    <div class="history-row">
+
+
+                        <div class="history-document">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                            <span>
+                                Rapport_001.txt
+                            </span>
+
+                        </div>
+
+
+                        <span>
+                            23 septembre 2026
+                        </span>
+
+
+                        <span class="history-success">
+                            Analysé
+                        </span>
+
+
+                    </div>
+
+
+
+                    <!-- ROW 2 -->
+
+                    <div class="history-row">
+
+
+                        <div class="history-document">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                            <span>
+                                Rapport_002.txt
+                            </span>
+
+                        </div>
+
+
+                        <span>
+                            22 septembre 2026
+                        </span>
+
+
+                        <span class="history-success">
+                            Analysé
+                        </span>
+
+
+                    </div>
+
+
+
+                    <!-- ROW 3 -->
+
+                    <div class="history-row">
+
+
+                        <div class="history-document">
+
+                            <img
+                                src="assets/icons/nice.png"
+                                alt=""
+                            >
+
+                            <span>
+                                Rapport_003.txt
+                            </span>
+
+                        </div>
+
+
+                        <span>
+                            21 septembre 2026
+                        </span>
+
+
+                        <span class="history-success">
+                            Analysé
+                        </span>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             PARAMETRES PAGE
+        ================================================== -->
+
+        <section
+            id="page-parametres"
+            class="page page-settings"
+        >
+
+            <div class="settings-inner">
+
+
+                <div class="eyebrow">
+                    PARAMÈTRES
+                </div>
+
+
+
+                <h1 class="page-title">
+                    Paramètres
+                </h1>
+
+
+
+                <p class="page-description">
+
+                    Configurez le fonctionnement de SynIA.
+
+                </p>
+
+
+
+                <!-- ==========================================
+                     SETTINGS CARD
+                =========================================== -->
+
+                <div class="settings-card">
+
+
+                    <!-- ======================================
+                         LANGUAGE
+                    ======================================= -->
+
+                    <div class="settings-row">
+
+
+                        <div>
+
+                            <strong>
+                                Langue
+                            </strong>
+
+                            <span>
+                                Langue de l'interface
+                            </span>
+
+                        </div>
+
+
+
+                        <div class="select-wrapper">
+
+                            <select id="languageSelect">
+
+                                <option value="fr">
+                                    Français
+                                </option>
+
+                                <option value="en">
+                                    English
+                                </option>
+
+                            </select>
+
+
+                            <img
+                                src="assets/icons/chevron.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- ======================================
+                         FORMAT
+                    ======================================= -->
+
+                    <div class="settings-row">
+
+
+                        <div>
+
+                            <strong>
+                                Format d'export
+                            </strong>
+
+                            <span>
+                                Format utilisé pour les résultats
+                            </span>
+
+                        </div>
+
+
+
+                        <div class="select-wrapper">
+
+                            <select id="formatSelect">
+
+                                <option value="json">
+                                    JSON
+                                </option>
+
+                                <option value="pdf">
+                                    PDF
+                                </option>
+
+                            </select>
+
+
+                            <img
+                                src="assets/icons/chevron.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- ======================================
+                         SIZE
+                    ======================================= -->
+
+                    <div class="settings-row">
+
+
+                        <div>
+
+                            <strong>
+                                Taille maximale
+                            </strong>
+
+                            <span>
+                                Taille maximale d'un document
+                            </span>
+
+                        </div>
+
+
+
+                        <div class="select-wrapper">
+
+                            <select>
+
+                                <option>
+                                    20 Mo
+                                </option>
+
+                                <option>
+                                    10 Mo
+                                </option>
+
+                                <option>
+                                    50 Mo
+                                </option>
+
+                            </select>
+
+
+                            <img
+                                src="assets/icons/chevron.png"
+                                alt=""
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script src="js/app.js"></script>
+
+
+</body>
+
+</html>
