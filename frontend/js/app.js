@@ -5,44 +5,20 @@ const API_URL = "http://127.0.0.1:8000";
 // ELEMENTS
 // ============================================================
 
-const pages =
-    document.querySelectorAll(".page");
+const pages = document.querySelectorAll(".page");
+const navItems = document.querySelectorAll(".nav-item");
+const fileInput = document.getElementById("fileInput");
+const uploadZone = document.getElementById("uploadZone");
+const filePreviewList = document.getElementById("filePreviewList");
+const analyseBtn = document.getElementById("analyseBtn");
+const loading = document.getElementById("loading");
+const errorMessage = document.getElementById("errorMessage");
+const resultContent = document.getElementById("resultContent");
+const historyRows = document.getElementById("historyRows");
+const recentAnalyses = document.getElementById("recentAnalyses");
 
-const navItems =
-    document.querySelectorAll(".nav-item");
-
-const fileInput =
-    document.getElementById("fileInput");
-
-const uploadZone =
-    document.getElementById("uploadZone");
-
-const filePreview =
-    document.getElementById("filePreview");
-
-const fileName =
-    document.getElementById("fileName");
-
-const fileSize =
-    document.getElementById("fileSize");
-
-const removeFile =
-    document.getElementById("removeFile");
-
-const analyseBtn =
-    document.getElementById("analyseBtn");
-
-const loading =
-    document.getElementById("loading");
-
-const errorMessage =
-    document.getElementById("errorMessage");
-
-const resultContent =
-    document.getElementById("resultContent");
-
+let selectedFiles = [];
 let lastResponse = null;
-
 
 
 // ============================================================
@@ -52,41 +28,34 @@ let lastResponse = null;
 function showPage(pageName) {
 
     pages.forEach(page => {
-
         page.classList.remove("active");
-
     });
 
-
-    const target =
-        document.getElementById(
-            `page-${pageName}`
-        );
-
+    const target = document.getElementById(`page-${pageName}`);
 
     if (!target) {
         return;
     }
 
-
     target.classList.add("active");
-
 
     navItems.forEach(item => {
 
         item.classList.remove("active");
 
-
-        if (
-            item.dataset.page === pageName
-        ) {
-
+        if (item.dataset.page === pageName) {
             item.classList.add("active");
-
         }
 
     });
 
+    if (pageName === "historique") {
+        chargerHistorique();
+    }
+
+    if (pageName === "home") {
+        chargerDernieresAnalyses();
+    }
 
     window.scrollTo({
         top: 0,
@@ -95,708 +64,529 @@ function showPage(pageName) {
 }
 
 
-
 // sidebar buttons
 
 navItems.forEach(item => {
 
-    item.addEventListener(
-        "click",
-        () => {
-
-            showPage(
-                item.dataset.page
-            );
-
-        }
-    );
+    item.addEventListener("click", () => {
+        showPage(item.dataset.page);
+    });
 
 });
-
 
 
 // home button
 
 document
     .getElementById("goAnalyse")
-    .addEventListener(
-        "click",
-        () => {
-
-            showPage("analyse");
-
-        }
-    );
-
+    .addEventListener("click", () => {
+        showPage("analyse");
+    });
 
 
 // history button
 
 document
     .querySelector(".text-button")
-    .addEventListener(
-        "click",
-        () => {
-
-            showPage("historique");
-
-        }
-    );
-
+    .addEventListener("click", () => {
+        showPage("historique");
+    });
 
 
 // ============================================================
 // FILE SELECTION
 // ============================================================
 
-fileInput.addEventListener(
-    "change",
-    handleFile
-);
+fileInput.addEventListener("change", () => {
+
+    addFiles(fileInput.files);
+
+    fileInput.value = "";
+
+});
 
 
-function handleFile() {
+function addFiles(fileList) {
 
     hideError();
 
+    const maxSize = 20 * 1024 * 1024;
 
-    if (!fileInput.files.length) {
+    Array.from(fileList).forEach(file => {
 
-        resetFile();
+        if (file.size > maxSize) {
 
-        return;
-    }
+            showError(`"${file.name}" dépasse la limite de 20 Mo.`);
 
+            return;
+        }
 
-    const file =
-        fileInput.files[0];
-
-
-    const maxSize =
-        20 * 1024 * 1024;
-
-
-    if (file.size > maxSize) {
-
-        showError(
-            "Le fichier dépasse la limite de 20 Mo."
+        const dejaPresent = selectedFiles.some(
+            f => f.name === file.name && f.size === file.size
         );
 
-        resetFile();
+        if (!dejaPresent) {
+            selectedFiles.push(file);
+        }
 
-        return;
-    }
+    });
 
-
-    fileName.textContent =
-        file.name;
-
-
-    fileSize.textContent =
-        formatSize(file.size);
-
-
-    filePreview.classList.add(
-        "show"
-    );
-
-
-    analyseBtn.disabled = false;
+    renderFileList();
 }
 
+
+// ============================================================
+// RENDER FILE LIST
+// ============================================================
+
+function renderFileList() {
+
+    filePreviewList.innerHTML = "";
+
+    selectedFiles.forEach((file, index) => {
+
+        const item = document.createElement("div");
+
+        item.className = "file-preview show";
+
+        item.innerHTML = `
+
+            <div class="file-preview-left">
+
+                <div class="file-preview-icon">
+                    <img src="assets/icons/nice.png" alt="">
+                </div>
+
+                <div>
+                    <strong>${escapeHtml(file.name)}</strong>
+                    <span>${formatSize(file.size)}</span>
+                </div>
+
+            </div>
+
+            <button
+                class="remove-file"
+                type="button"
+                data-index="${index}"
+            >
+                <img src="assets/icons/x.png" alt="Supprimer">
+            </button>
+        `;
+
+        filePreviewList.appendChild(item);
+
+    });
+
+    filePreviewList
+        .querySelectorAll(".remove-file")
+        .forEach(btn => {
+
+            btn.addEventListener("click", () => {
+
+                const idx = Number(btn.dataset.index);
+
+                selectedFiles.splice(idx, 1);
+
+                renderFileList();
+
+            });
+
+        });
+
+    analyseBtn.disabled = selectedFiles.length === 0;
+}
 
 
 // ============================================================
 // DRAG & DROP
 // ============================================================
 
-uploadZone.addEventListener(
-    "dragover",
-    event => {
+uploadZone.addEventListener("dragover", event => {
 
-        event.preventDefault();
+    event.preventDefault();
 
-        uploadZone.classList.add(
-            "dragover"
-        );
+    uploadZone.classList.add("dragover");
 
+});
+
+
+uploadZone.addEventListener("dragleave", () => {
+
+    uploadZone.classList.remove("dragover");
+
+});
+
+
+uploadZone.addEventListener("drop", event => {
+
+    event.preventDefault();
+
+    uploadZone.classList.remove("dragover");
+
+    const files = event.dataTransfer.files;
+
+    if (!files.length) {
+        return;
     }
-);
 
+    addFiles(files);
 
-uploadZone.addEventListener(
-    "dragleave",
-    () => {
-
-        uploadZone.classList.remove(
-            "dragover"
-        );
-
-    }
-);
-
-
-uploadZone.addEventListener(
-    "drop",
-    event => {
-
-        event.preventDefault();
-
-        uploadZone.classList.remove(
-            "dragover"
-        );
-
-
-        const files =
-            event.dataTransfer.files;
-
-
-        if (!files.length) {
-            return;
-        }
-
-
-        fileInput.files =
-            files;
-
-
-        handleFile();
-
-    }
-);
-
+});
 
 
 // ============================================================
-// REMOVE FILE
+// RESET FILES
 // ============================================================
-
-removeFile.addEventListener(
-    "click",
-    () => {
-
-        resetFile();
-
-    }
-);
-
 
 function resetFile() {
 
-    fileInput.value = "";
+    selectedFiles = [];
 
-    filePreview.classList.remove(
-        "show"
-    );
-
-    fileName.textContent = "";
-
-    fileSize.textContent = "";
-
-    analyseBtn.disabled = true;
+    renderFileList();
 }
-
 
 
 // ============================================================
 // ANALYSE
 // ============================================================
 
-analyseBtn.addEventListener(
-    "click",
-    analyseDocument
-);
+analyseBtn.addEventListener("click", analyseDocument);
 
 
 async function analyseDocument() {
 
-    if (!fileInput.files.length) {
+    if (!selectedFiles.length) {
 
-        showError(
-            "Veuillez sélectionner un fichier."
-        );
+        showError("Veuillez sélectionner au moins un fichier.");
 
         return;
     }
 
+    const formData = new FormData();
 
-    const file =
-        fileInput.files[0];
-
-
-    const formData =
-        new FormData();
-
-
-    formData.append(
-        "fichier",
-        file
-    );
-
+    selectedFiles.forEach(file => {
+        formData.append("fichiers", file);
+    });
 
     // interface
 
     analyseBtn.disabled = true;
-
-    analyseBtn.innerHTML =
-        "Analyse en cours...";
-
-    loading.classList.add(
-        "show"
-    );
+    analyseBtn.innerHTML = "Analyse en cours...";
+    loading.classList.add("show");
 
     hideError();
-
 
     try {
 
         console.log(
-            "Envoi du fichier :",
-            file.name
+            "Envoi des fichiers :",
+            selectedFiles.map(f => f.name)
         );
 
-
-        const response =
-            await fetch(
-                `${API_URL}/api/analyse`,
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            "Réponse API :",
-            data
+        const response = await fetch(
+            `${API_URL}/api/analyse`,
+            {
+                method: "POST",
+                body: formData
+            }
         );
 
+        const data = await response.json();
+
+        console.log("Réponse API :", data);
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail ||
-                "Erreur pendant l'analyse."
+                data.detail || "Erreur pendant l'analyse."
             );
 
         }
 
-
         lastResponse = data;
 
-
-        displayResult(
-            data
-        );
-
+        displayResult(data);
 
         showPage("result");
-
 
     } catch (error) {
 
         console.error(error);
 
-
         showError(
-            error.message ||
-            "Impossible de contacter le serveur."
+            error.message || "Impossible de contacter le serveur."
         );
 
     } finally {
 
-        loading.classList.remove(
-            "show"
-        );
-
+        loading.classList.remove("show");
 
         analyseBtn.disabled = false;
 
-        analyseBtn.innerHTML =
-            `
+        analyseBtn.innerHTML = `
             Analyser maintenant
 
-            <img
-                src="assets/icons/goto.png"
-                alt=""
-            >
-            `;
+            <img src="assets/icons/goto.png" alt="">
+        `;
 
     }
 
 }
 
 
+// ============================================================
+// PRIORITY CLASS
+// ============================================================
+
+function getPriorityClass(priorite) {
+
+    const p = (priorite || "").toLowerCase();
+
+    if (
+        p.includes("élev") ||
+        p.includes("elev") ||
+        p.includes("haute") ||
+        p.includes("high")
+    ) {
+        return "priority-high";
+    }
+
+    if (
+        p.includes("faible") ||
+        p.includes("basse") ||
+        p.includes("low")
+    ) {
+        return "priority-low";
+    }
+
+    return "priority-medium";
+}
+
 
 // ============================================================
 // DISPLAY RESULT
+// (uniquement synthèse + recommandations)
+// ============================================================
+
+// ============================================================
+// DISPLAY RESULT
+// Synthèse + Recommandations
 // ============================================================
 
 function displayResult(data) {
 
     resultContent.innerHTML = "";
 
-
-    const analyse =
-        data.analyse || {};
-
-
-    const synthese =
-        data.synthese || {};
-
-
-    // --------------------------------------------------------
-    // Équipements
-    // --------------------------------------------------------
-
-    const equipements =
-        analyse.equipements || [];
-
-
-    equipements.forEach(
-        (equipement, index) => {
-
-            addResultItem(
-                resultContent,
-                index + 1,
-                "Équipement",
-                `
-                    <strong>
-                        ${escapeHtml(
-                            equipement.nom ||
-                            "Non identifié"
-                        )}
-                    </strong>
-
-                    <br>
-
-                    ${escapeHtml(
-                        equipement.type ||
-                        "Type non précisé"
-                    )}
-                `
-            );
-
-
-            // anomalies
-
-            if (
-                equipement.anomalies &&
-                equipement.anomalies.length
-            ) {
-
-                const anomalies =
-                    equipement.anomalies
-                        .map(anomalie => {
-
-                            const niveau =
-                                anomalie.niveau ||
-                                "Non précisé";
-
-
-                            return `
-                                <div class="result-list-item">
-
-                                    ${escapeHtml(
-                                        anomalie.description
-                                    )}
-
-                                    <span>
-                                        (${escapeHtml(
-                                            niveau
-                                        )})
-                                    </span>
-
-                                </div>
-                            `;
-
-                        })
-                        .join("");
-
-
-                addResultItem(
-                    resultContent,
-                    "--",
-                    "Anomalies",
-                    `
-                        <div class="result-list">
-                            ${anomalies}
-                        </div>
-                    `
-                );
-
-            }
-
-
-            // causes
-
-            if (
-                equipement.causes &&
-                equipement.causes.length
-            ) {
-
-                const causes =
-                    equipement.causes
-                        .map(cause => {
-
-                            return `
-                                <div class="result-list-item">
-                                    ${escapeHtml(cause)}
-                                </div>
-                            `;
-
-                        })
-                        .join("");
-
-
-                addResultItem(
-                    resultContent,
-                    "--",
-                    "Causes",
-                    `
-                        <div class="result-list">
-                            ${causes}
-                        </div>
-                    `
-                );
-
-            }
-
-
-            // interventions
-
-            if (
-                equipement.interventions &&
-                equipement.interventions.length
-            ) {
-
-                const interventions =
-                    equipement.interventions
-                        .map(intervention => {
-
-                            return `
-                                <div class="result-list-item">
-                                    ${escapeHtml(
-                                        intervention
-                                    )}
-                                </div>
-                            `;
-
-                        })
-                        .join("");
-
-
-                addResultItem(
-                    resultContent,
-                    "--",
-                    "Interventions réalisées",
-                    `
-                        <div class="result-list">
-                            ${interventions}
-                        </div>
-                    `
-                );
-
-            }
-
-
-            // results
-
-            if (
-                equipement.resultats &&
-                equipement.resultats.length
-            ) {
-
-                const results =
-                    equipement.resultats
-                        .map(resultat => {
-
-                            return `
-                                <div class="result-list-item">
-                                    ${escapeHtml(resultat)}
-                                </div>
-                            `;
-
-                        })
-                        .join("");
-
-
-                addResultItem(
-                    resultContent,
-                    "--",
-                    "Résultats",
-                    `
-                        <div class="result-list">
-                            ${results}
-                        </div>
-                    `
-                );
-
-            }
-
-        }
-    );
-
-
-
-    // --------------------------------------------------------
-    // Synthèse
-    // --------------------------------------------------------
-
-    if (
-        synthese.synthese_interventions &&
-        synthese.synthese_interventions.length
-    ) {
-
-        synthese
-            .synthese_interventions
-            .forEach(item => {
-
-                addResultItem(
-                    resultContent,
-                    "06",
-                    "Synthèse de l'intervention",
-                    `
-                        <strong>
-                            ${escapeHtml(
-                                item.equipement
-                            )}
-                        </strong>
-
-                        <br>
-
-                        ${escapeHtml(
-                            item.resume
-                        )}
-                    `
-                );
-
-            });
-
-    }
-
-
-
-    // --------------------------------------------------------
-    // Recommendations
-    // --------------------------------------------------------
-
-    if (
-        synthese.recommandations &&
-        synthese.recommandations.length
-    ) {
-
-        const recommendations =
-            synthese
-                .recommandations
-                .map(reco => {
-
-                    const priority =
-                        (reco.priorite || "")
-                        .toLowerCase();
-
-
-                    let priorityClass =
-                        "priority-medium";
-
-
-                    if (
-                        priority.includes("haute") ||
-                        priority.includes("high")
-                    ) {
-
-                        priorityClass =
-                            "priority-high";
-                    }
-
-
-                    if (
-                        priority.includes("basse") ||
-                        priority.includes("low")
-                    ) {
-
-                        priorityClass =
-                            "priority-low";
-                    }
-
-
-                    return `
-                        <div class="priority-box">
-
-                            <span
-                                class="priority-label ${priorityClass}"
-                            >
-                                ${escapeHtml(
-                                    reco.priorite
-                                )}
-                            </span>
-
-                            <div class="priority-action">
-
-                                <strong>
-                                    ${escapeHtml(
-                                        reco.equipement
-                                    )}
-                                </strong>
-
-                                <br>
-
-                                ${escapeHtml(
-                                    reco.action
-                                )}
-
+    const synthese = data.synthese || {};
+
+    // ========================================================
+    // SYNTHÈSE
+    // ========================================================
+
+    const syntheses =
+        Array.isArray(synthese.synthese_interventions)
+            ? synthese.synthese_interventions
+            : [];
+
+    syntheses.forEach((item, index) => {
+
+        const constat = item.constat || "";
+        const intervention = item.intervention || "";
+        const resultat = item.resultat || "";
+        const resume = item.resume || "";
+
+        let contenu = `
+            <div class="synthesis-equipment">
+                
+                <h3>
+                    ${escapeHtml(item.equipement || "")}
+                </h3>
+
+                ${
+                    constat
+                        ? `
+                            <div class="synthesis-section">
+                                <strong>Constat</strong>
+                                <p>${escapeHtml(constat)}</p>
                             </div>
+                          `
+                        : ""
+                }
 
-                            <div class="priority-justification">
-
-                                ${escapeHtml(
-                                    reco.justification
-                                )}
-
+                ${
+                    intervention
+                        ? `
+                            <div class="synthesis-section">
+                                <strong>Intervention</strong>
+                                <p>${escapeHtml(intervention)}</p>
                             </div>
+                          `
+                        : ""
+                }
 
-                        </div>
-                    `;
+                ${
+                    resultat
+                        ? `
+                            <div class="synthesis-section">
+                                <strong>Résultat</strong>
+                                <p>${escapeHtml(resultat)}</p>
+                            </div>
+                          `
+                        : ""
+                }
 
-                })
-                .join("");
+                ${
+                    resume
+                        ? `
+                            <div class="synthesis-section">
+                                <strong>Résumé</strong>
+                                <p>${escapeHtml(resume)}</p>
+                            </div>
+                          `
+                        : ""
+                }
 
+            </div>
+        `;
 
         addResultItem(
             resultContent,
-            "07",
-            "Recommandations",
-            recommendations
+            index + 1,
+            "Synthèse de l'intervention",
+            contenu
         );
+
+    });
+
+    // ========================================================
+    // RECOMMANDATIONS
+    // ========================================================
+
+    const recommandations =
+        Array.isArray(synthese.recommandations)
+            ? synthese.recommandations
+            : [];
+
+    if (recommandations.length) {
+
+        let recommendationsHTML = "";
+
+        recommandations.forEach(groupe => {
+
+            const actions = Array.isArray(groupe.actions)
+                ? groupe.actions
+                : [];
+
+            if (!actions.length) {
+                return;
+            }
+
+            // ------------------------------------------------
+            // NOM DE L'ÉQUIPEMENT UNE SEULE FOIS
+            // ------------------------------------------------
+
+            recommendationsHTML += `
+                <div class="recommendation-group">
+
+                    <h3 class="recommendation-equipment">
+                        ${escapeHtml(groupe.equipement || "")}
+                    </h3>
+
+                    <div class="recommendation-actions">
+            `;
+
+            actions.forEach(action => {
+
+                const priorityClass =
+                    getPriorityClass(
+                        action.priorite
+                    );
+
+                recommendationsHTML += `
+
+                    <div class="priority-box">
+
+                        <span class="priority-label ${priorityClass}">
+                            ${escapeHtml(
+                                action.priorite || "moyenne"
+                            )}
+                        </span>
+
+                        <div class="priority-action">
+
+                            <strong>
+                                Action recommandée
+                            </strong>
+
+                            <p>
+                                ${escapeHtml(
+                                    action.action || ""
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="priority-justification">
+
+                            <strong>
+                                Justification
+                            </strong>
+
+                            <p>
+                                ${escapeHtml(
+                                    action.justification || ""
+                                )}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            });
+
+            recommendationsHTML += `
+                    </div>
+                </div>
+            `;
+
+        });
+
+        if (recommendationsHTML.trim()) {
+
+            addResultItem(
+                resultContent,
+                "--",
+                "Recommandations",
+                `
+                    <div class="recommendations-container">
+                        ${recommendationsHTML}
+
+                        <div class="recommendation-note">
+                            Les recommandations doivent être
+                            validées par un responsable maintenance.
+                        </div>
+                    </div>
+                `
+            );
+
+        }
 
     }
 
 }
 
 
-
 // ============================================================
 // RESULT ITEM
 // ============================================================
 
-function addResultItem(
-    container,
-    index,
-    label,
-    value
-) {
+function addResultItem(container, index, label, value) {
 
-    const item =
-        document.createElement("div");
+    const item = document.createElement("div");
 
-
-    item.className =
-        "result-item";
-
+    item.className = "result-item";
 
     item.innerHTML = `
 
@@ -814,13 +604,144 @@ function addResultItem(
 
     `;
 
-
-    container.appendChild(
-        item
-    );
+    container.appendChild(item);
 
 }
 
+
+// ============================================================
+// CHARGER L'HISTORIQUE (PAGE HISTORIQUE)
+// ============================================================
+
+async function chargerHistorique() {
+
+    if (!historyRows) {
+        return;
+    }
+
+    historyRows.innerHTML =
+        `<div class="history-row"><span>Chargement...</span></div>`;
+
+    try {
+
+        const response = await fetch(`${API_URL}/api/historique`);
+
+        const data = await response.json();
+
+        const items = data.historique || [];
+
+        if (!items.length) {
+
+            historyRows.innerHTML =
+                `<div class="history-row"><span>Aucune analyse pour le moment.</span></div>`;
+
+            return;
+        }
+
+        historyRows.innerHTML = items
+            .map(item => `
+                <div class="history-row">
+
+                    <div class="history-document">
+
+                        <img src="assets/icons/nice.png" alt="">
+
+                        <span>${escapeHtml(item.fichier)}</span>
+
+                    </div>
+
+                    <span>
+                        ${escapeHtml(item.analyse_le || item.date || "--")}
+                    </span>
+
+                    <span class="history-success">
+                        Analysé
+                    </span>
+
+                </div>
+            `)
+            .join("");
+
+    } catch (error) {
+
+        console.error(error);
+
+        historyRows.innerHTML =
+            `<div class="history-row"><span>Impossible de charger l'historique.</span></div>`;
+    }
+}
+
+
+// ============================================================
+// CHARGER LES DERNIÈRES ANALYSES (PAGE ACCUEIL)
+// ============================================================
+
+async function chargerDernieresAnalyses() {
+
+    if (!recentAnalyses) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(`${API_URL}/api/historique`);
+
+        const data = await response.json();
+
+        const items = (data.historique || []).slice(0, 3);
+
+        if (!items.length) {
+
+            recentAnalyses.innerHTML = `
+                <div class="recent-item">
+                    <div class="recent-main">
+                        <span>Aucune analyse pour le moment.</span>
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
+        recentAnalyses.innerHTML = items
+            .map(item => `
+                <div class="recent-item">
+
+                    <div class="document-mini-icon">
+                        <img src="assets/icons/nice.png" alt="">
+                    </div>
+
+                    <div class="recent-main">
+
+                        <strong>${escapeHtml(item.fichier)}</strong>
+
+                        <span>
+                            ${escapeHtml(item.analyse_le || item.date || "--")}
+                        </span>
+
+                    </div>
+
+                    <span class="recent-status">
+                        Terminé
+                    </span>
+
+                </div>
+            `)
+            .join("");
+
+    } catch (error) {
+
+        console.error(error);
+
+        recentAnalyses.innerHTML = `
+            <div class="recent-item">
+                <div class="recent-main">
+                    <span>Impossible de charger les analyses.</span>
+                </div>
+            </div>
+        `;
+    }
+}
 
 
 // ============================================================
@@ -829,70 +750,37 @@ function addResultItem(
 
 document
     .getElementById("exportJsonBtn")
-    .addEventListener(
-        "click",
-        () => {
+    .addEventListener("click", () => {
 
-            if (!lastResponse) {
+        if (!lastResponse) {
 
-                showError(
-                    "Aucune analyse disponible."
-                );
+            showError("Aucune analyse disponible.");
 
-                return;
-            }
-
-
-            const blob =
-                new Blob(
-                    [
-                        JSON.stringify(
-                            lastResponse,
-                            null,
-                            2
-                        )
-                    ],
-                    {
-                        type:
-                            "application/json"
-                    }
-                );
-
-
-            const url =
-                URL.createObjectURL(
-                    blob
-                );
-
-
-            const link =
-                document.createElement(
-                    "a"
-                );
-
-
-            link.href = url;
-
-            link.download =
-                "synia_analyse.json";
-
-
-            document.body.appendChild(
-                link
-            );
-
-            link.click();
-
-            link.remove();
-
-
-            URL.revokeObjectURL(
-                url
-            );
-
+            return;
         }
-    );
 
+        const blob = new Blob(
+            [JSON.stringify(lastResponse, null, 2)],
+            { type: "application/json" }
+        );
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+
+        link.href = url;
+
+        link.download = "synia_analyse.json";
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        URL.revokeObjectURL(url);
+
+    });
 
 
 // ============================================================
@@ -901,15 +789,11 @@ document
 
 document
     .getElementById("downloadBtn")
-    .addEventListener(
-        "click",
-        () => {
+    .addEventListener("click", () => {
 
-            window.print();
+        window.print();
 
-        }
-    );
-
+    });
 
 
 // ============================================================
@@ -918,21 +802,15 @@ document
 
 document
     .getElementById("newAnalysisBtn")
-    .addEventListener(
-        "click",
-        () => {
+    .addEventListener("click", () => {
 
-            resetFile();
+        resetFile();
 
-            resultContent.innerHTML = "";
+        resultContent.innerHTML = "";
 
-            showPage(
-                "analyse"
-            );
+        showPage("analyse");
 
-        }
-    );
-
+    });
 
 
 // ============================================================
@@ -941,30 +819,19 @@ document
 
 function showError(message) {
 
-    const span =
-        errorMessage.querySelector(
-            "span"
-        );
+    const span = errorMessage.querySelector("span");
 
+    span.textContent = message;
 
-    span.textContent =
-        message;
-
-
-    errorMessage.classList.add(
-        "show"
-    );
+    errorMessage.classList.add("show");
 }
 
 
 function hideError() {
 
-    errorMessage.classList.remove(
-        "show"
-    );
+    errorMessage.classList.remove("show");
 
 }
-
 
 
 // ============================================================
@@ -974,27 +841,15 @@ function hideError() {
 function formatSize(bytes) {
 
     if (bytes < 1024) {
-
         return `${bytes} octets`;
-
     }
-
 
     if (bytes < 1024 * 1024) {
-
-        return `${(
-            bytes / 1024
-        ).toFixed(1)} KB`;
-
+        return `${(bytes / 1024).toFixed(1)} KB`;
     }
 
-
-    return `${(
-        bytes /
-        (1024 * 1024)
-    ).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
 
 
 // ============================================================
@@ -1003,15 +858,9 @@ function formatSize(bytes) {
 
 function escapeHtml(value) {
 
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
+    if (value === null || value === undefined) {
         return "";
-
     }
-
 
     return String(value)
         .replaceAll("&", "&amp;")
@@ -1020,3 +869,10 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+
+// ============================================================
+// CHARGEMENT INITIAL
+// ============================================================
+
+chargerDernieresAnalyses();

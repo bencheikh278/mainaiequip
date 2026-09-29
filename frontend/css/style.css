@@ -896,18 +896,28 @@ input {
 
 
 /* =========================================================
-   FILE PREVIEW
+   FILE PREVIEW (MULTIPLE FILES)
 ========================================================= */
+
+.file-preview-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    margin-top: 11px;
+}
+
 
 .file-preview {
 
-    display: none;
+    display: flex;
 
     justify-content: space-between;
 
     align-items: center;
-
-    margin-top: 11px;
 
     padding: 11px 13px;
 
@@ -916,12 +926,6 @@ input {
     border: 1px solid var(--border);
 
     border-radius: 8px;
-}
-
-
-.file-preview.show {
-
-    display: flex;
 }
 
 

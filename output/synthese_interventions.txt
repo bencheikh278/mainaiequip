@@ -1,11 +1,5 @@
 === SYNTHESE DES INTERVENTIONS ===
 
-C-102 (3 intervention(s))
-  Interventions réalisées incluant l'arrêt de l'équipement, l'inspection du côté moteur, la vérification du niveau de lubrification, une vidange partielle, un complément d'huile, le remplacement à plusieurs reprises du roulement usé, le contrôle de l'alignement et la remise en service avec des niveaux de vibrations redevenus normaux ou acceptables.
-
-P-204 (2 intervention(s))
-  Interventions réalisées incluant l'inspection, le remplacement du joint (ou seal), le resserrement des raccordements et un essai de fonctionnement d'environ trente minutes, permettant de rétablir une pression normale et d'éliminer les fuites.
-
-E-301 (1 intervention(s))
-  Interventions réalisées incluant l'inspection de l'échangeur thermique et le nettoyage des surfaces de transfert thermique, ce qui a permis de faire redescendre la température de sortie à la normale.
+C-102 (4 intervention(s))
+  La synthèse résume que le compresseur C-102 a été remis en service après une réparation pour résoudre les problèmes de vibration et de roulement du moteur. L'investigation a également identifié l'anomalie d'une dépression au niveau du joint de la pompe. Des interventions ont été effectuées pour corriger ces problèmes.
 

@@ -257,7 +257,7 @@
 
                 <div class="file-hint">
 
-                    Ajoutez un ou plusieurs documents : PDF, DOCX, XLSX, TXT, PNG ou JPG.
+                    Ajoutez un ou plusieurs documents : PDF, DOCX,  TXT.
 
                 </div>
 
@@ -377,77 +377,9 @@
 
 
 
-                    <!-- RECENT ITEM 1 -->
+                    <!-- GÉNÉRÉ EN JS -->
 
-                    <div class="recent-item">
-
-
-                        <div class="document-mini-icon">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                        </div>
-
-
-                        <div class="recent-main">
-
-                            <strong>
-                                Rapport de maintenance
-                            </strong>
-
-                            <span>
-                                Dernière analyse
-                            </span>
-
-                        </div>
-
-
-                        <span class="recent-status">
-                            Terminé
-                        </span>
-
-
-                    </div>
-
-
-
-                    <!-- RECENT ITEM 2 -->
-
-                    <div class="recent-item">
-
-
-                        <div class="document-mini-icon">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                        </div>
-
-
-                        <div class="recent-main">
-
-                            <strong>
-                                Rapport équipement
-                            </strong>
-
-                            <span>
-                                Analyse enregistrée
-                            </span>
-
-                        </div>
-
-
-                        <span class="recent-status">
-                            Terminé
-                        </span>
-
-
-                    </div>
+                    <div id="recentAnalyses"></div>
 
 
                 </section>
@@ -534,7 +466,7 @@
                     <!-- DESCRIPTION -->
 
                     <p>
-                        ou sélectionnez un fichier depuis votre ordinateur
+                        ou sélectionnez un ou plusieurs fichiers depuis votre ordinateur
                     </p>
 
 
@@ -557,7 +489,8 @@
                     <input
                         type="file"
                         id="fileInput"
-                        accept=".pdf,.docx,.xlsx,.xls,.txt,.png,.jpg,.jpeg"
+                        accept=".pdf,.docx,.txt"
+                        multiple
                     >
 
 
@@ -566,11 +499,10 @@
 
                     <small>
 
-                        PDF · DOCX · XLSX · TXT · PNG · JPG
-
+                        PDF · DOCX ·  TXT 
                         <br>
 
-                        20 Mo maximum
+                        20 Mo maximum par fichier
 
                     </small>
 
@@ -580,59 +512,13 @@
 
 
                 <!-- ==========================================
-                     SELECTED FILE
+                     SELECTED FILES
                 =========================================== -->
 
                 <div
-                    id="filePreview"
-                    class="file-preview"
+                    id="filePreviewList"
+                    class="file-preview-list"
                 >
-
-
-                    <div class="file-preview-left">
-
-
-                        <div class="file-preview-icon">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                        </div>
-
-
-                        <div>
-
-                            <strong id="fileName">
-                            </strong>
-
-                            <span id="fileSize">
-                            </span>
-
-                        </div>
-
-
-                    </div>
-
-
-
-                    <!-- REMOVE -->
-
-                    <button
-                        id="removeFile"
-                        class="remove-file"
-                        type="button"
-                    >
-
-                        <img
-                            src="assets/icons/x.png"
-                            alt="Supprimer"
-                        >
-
-                    </button>
-
-
                 </div>
 
 
@@ -920,103 +806,9 @@
                     </div>
 
 
+                    <!-- GÉNÉRÉ EN JS -->
 
-                    <!-- ROW 1 -->
-
-                    <div class="history-row">
-
-
-                        <div class="history-document">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                            <span>
-                                Rapport_001.txt
-                            </span>
-
-                        </div>
-
-
-                        <span>
-                            23 septembre 2026
-                        </span>
-
-
-                        <span class="history-success">
-                            Analysé
-                        </span>
-
-
-                    </div>
-
-
-
-                    <!-- ROW 2 -->
-
-                    <div class="history-row">
-
-
-                        <div class="history-document">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                            <span>
-                                Rapport_002.txt
-                            </span>
-
-                        </div>
-
-
-                        <span>
-                            22 septembre 2026
-                        </span>
-
-
-                        <span class="history-success">
-                            Analysé
-                        </span>
-
-
-                    </div>
-
-
-
-                    <!-- ROW 3 -->
-
-                    <div class="history-row">
-
-
-                        <div class="history-document">
-
-                            <img
-                                src="assets/icons/nice.png"
-                                alt=""
-                            >
-
-                            <span>
-                                Rapport_003.txt
-                            </span>
-
-                        </div>
-
-
-                        <span>
-                            21 septembre 2026
-                        </span>
-
-
-                        <span class="history-success">
-                            Analysé
-                        </span>
-
-
-                    </div>
+                    <div id="historyRows"></div>
 
 
                 </div>
