@@ -114,9 +114,30 @@ function addFiles(fileList) {
 
     Array.from(fileList).forEach(file => {
 
+        if (file.size === 0) {
+
+            showError(`Le fichier "${file.name}" est vide.`);
+
+            return;
+        }
+
         if (file.size > maxSize) {
 
             showError(`"${file.name}" dépasse la limite de 20 Mo.`);
+
+            return;
+        }
+
+        const point = file.name.lastIndexOf(".");
+        const extension = point >= 0
+            ? file.name.slice(point).toLowerCase()
+            : "";
+
+        if (![".pdf", ".docx", ".txt"].includes(extension)) {
+
+            showError(
+                `"${file.name}" n'est pas un format supporté. Formats acceptés : PDF, DOCX, TXT.`
+            );
 
             return;
         }
@@ -291,14 +312,22 @@ async function analyseDocument() {
             }
         );
 
-        const data = await response.json();
+        let data = {};
+
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            throw new Error(
+                "Impossible de contacter le serveur ou de lire la réponse."
+            );
+        }
 
         console.log("Réponse API :", data);
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Erreur pendant l'analyse."
+                extraireMessageErreur(data) || "Erreur pendant l'analyse."
             );
 
         }
@@ -363,14 +392,32 @@ function getPriorityClass(priorite) {
 }
 
 
-// ============================================================
-// DISPLAY RESULT
-// (uniquement synthèse + recommandations)
-// ============================================================
+function extraireMessageErreur(data) {
+
+    const detail = data && data.detail;
+
+    if (!detail) {
+        return "";
+    }
+
+    if (typeof detail === "string") {
+        return detail;
+    }
+
+    if (Array.isArray(detail)) {
+        return detail
+            .map(item => item.msg || item.detail || "")
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    return String(detail);
+}
+
 
 // ============================================================
 // DISPLAY RESULT
-// Synthèse + Recommandations
+// (uniquement synthèse + recommandations)
 // ============================================================
 
 function displayResult(data) {
@@ -379,201 +426,119 @@ function displayResult(data) {
 
     const synthese = data.synthese || {};
 
-    // ========================================================
-    // SYNTHÈSE
-    // ========================================================
-
     const syntheses =
         Array.isArray(synthese.synthese_interventions)
             ? synthese.synthese_interventions
             : [];
 
-    syntheses.forEach((item, index) => {
+    let syntheseHTML = "";
 
-        const constat = item.constat || "";
-        const intervention = item.intervention || "";
-        const resultat = item.resultat || "";
-        const resume = item.resume || "";
+    if (!syntheses.length) {
 
-        let contenu = `
-            <div class="synthesis-equipment">
-                
-                <h3>
-                    ${escapeHtml(item.equipement || "")}
-                </h3>
+        syntheseHTML = "<p>Aucune synthèse n'a pu être produite.</p>";
 
-                ${
-                    constat
-                        ? `
-                            <div class="synthesis-section">
-                                <strong>Constat</strong>
-                                <p>${escapeHtml(constat)}</p>
-                            </div>
-                          `
-                        : ""
-                }
+    } else {
 
-                ${
-                    intervention
-                        ? `
-                            <div class="synthesis-section">
-                                <strong>Intervention</strong>
-                                <p>${escapeHtml(intervention)}</p>
-                            </div>
-                          `
-                        : ""
-                }
+        syntheses.forEach(item => {
 
-                ${
-                    resultat
-                        ? `
-                            <div class="synthesis-section">
-                                <strong>Résultat</strong>
-                                <p>${escapeHtml(resultat)}</p>
-                            </div>
-                          `
-                        : ""
-                }
+            syntheseHTML += `
+                <div class="synthesis-equipment">
+                    <h3>${escapeHtml(item.equipement || "")}</h3>
+                    <p>${escapeHtml(item.resume || "")}</p>
+                </div>
+            `;
 
-                ${
-                    resume
-                        ? `
-                            <div class="synthesis-section">
-                                <strong>Résumé</strong>
-                                <p>${escapeHtml(resume)}</p>
-                            </div>
-                          `
-                        : ""
-                }
+        });
 
-            </div>
-        `;
+    }
 
-        addResultItem(
-            resultContent,
-            index + 1,
-            "Synthèse de l'intervention",
-            contenu
-        );
-
-    });
-
-    // ========================================================
-    // RECOMMANDATIONS
-    // ========================================================
+    addResultItem(
+        resultContent,
+        "01",
+        "Synthèse de l'intervention",
+        syntheseHTML
+    );
 
     const recommandations =
         Array.isArray(synthese.recommandations)
             ? synthese.recommandations
             : [];
 
-    if (recommandations.length) {
+    let recommendationsHTML = "";
 
-        let recommendationsHTML = "";
+    recommandations.forEach(groupe => {
 
-        recommandations.forEach(groupe => {
+        const actions = Array.isArray(groupe.actions)
+            ? groupe.actions
+            : [];
 
-            const actions = Array.isArray(groupe.actions)
-                ? groupe.actions
-                : [];
+        if (!actions.length) {
+            return;
+        }
 
-            if (!actions.length) {
-                return;
-            }
+        recommendationsHTML += `
+            <div class="recommendation-group">
 
-            // ------------------------------------------------
-            // NOM DE L'ÉQUIPEMENT UNE SEULE FOIS
-            // ------------------------------------------------
+                <h3 class="recommendation-equipment">
+                    ${escapeHtml(groupe.equipement || "")}
+                </h3>
 
-            recommendationsHTML += `
-                <div class="recommendation-group">
+                <div class="recommendation-actions">
+        `;
 
-                    <h3 class="recommendation-equipment">
-                        ${escapeHtml(groupe.equipement || "")}
-                    </h3>
+        actions.forEach(action => {
 
-                    <div class="recommendation-actions">
-            `;
-
-            actions.forEach(action => {
-
-                const priorityClass =
-                    getPriorityClass(
-                        action.priorite
-                    );
-
-                recommendationsHTML += `
-
-                    <div class="priority-box">
-
-                        <span class="priority-label ${priorityClass}">
-                            ${escapeHtml(
-                                action.priorite || "moyenne"
-                            )}
-                        </span>
-
-                        <div class="priority-action">
-
-                            <strong>
-                                Action recommandée
-                            </strong>
-
-                            <p>
-                                ${escapeHtml(
-                                    action.action || ""
-                                )}
-                            </p>
-
-                        </div>
-
-                        <div class="priority-justification">
-
-                            <strong>
-                                Justification
-                            </strong>
-
-                            <p>
-                                ${escapeHtml(
-                                    action.justification || ""
-                                )}
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            });
+            const priorityClass = getPriorityClass(action.priorite);
 
             recommendationsHTML += `
+
+                <div class="priority-box">
+
+                    <span class="priority-label ${priorityClass}">
+                        ${escapeHtml(action.priorite || "moyenne")}
+                    </span>
+
+                    <div class="priority-action">
+                        <strong>Action recommandée</strong>
+                        <p>${escapeHtml(action.action || "")}</p>
                     </div>
+
+                    <div class="priority-justification">
+                        <strong>Justification</strong>
+                        <p>${escapeHtml(action.justification || "")}</p>
+                    </div>
+
                 </div>
+
             `;
 
         });
 
-        if (recommendationsHTML.trim()) {
+        recommendationsHTML += `
+                </div>
+            </div>
+        `;
 
-            addResultItem(
-                resultContent,
-                "--",
-                "Recommandations",
-                `
-                    <div class="recommendations-container">
-                        ${recommendationsHTML}
+    });
 
-                        <div class="recommendation-note">
-                            Les recommandations doivent être
-                            validées par un responsable maintenance.
-                        </div>
-                    </div>
-                `
-            );
-
-        }
-
+    if (!recommendationsHTML.trim()) {
+        recommendationsHTML = "<p>Aucune recommandation future n'a été générée.</p>";
     }
+
+    addResultItem(
+        resultContent,
+        "02",
+        "Recommandations",
+        `
+            <div class="recommendations-container">
+                ${recommendationsHTML}
+
+                <div class="recommendation-note">
+                    Les recommandations doivent être validées par un responsable de maintenance.
+                </div>
+            </div>
+        `
+    );
 
 }
 

@@ -1468,6 +1468,55 @@ input {
 }
 
 
+.synthesis-equipment {
+
+    margin-bottom: 12px;
+}
+
+
+.synthesis-equipment:last-child {
+
+    margin-bottom: 0;
+}
+
+
+.synthesis-equipment h3,
+.recommendation-equipment {
+
+    color: var(--text);
+
+    font-size: 9px;
+
+    font-weight: 600;
+
+    margin-bottom: 4px;
+}
+
+
+.recommendation-group {
+
+    margin-bottom: 12px;
+}
+
+
+.recommendation-note {
+
+    margin-top: 12px;
+
+    padding: 8px 10px;
+
+    border-radius: 6px;
+
+    background: var(--yellow-light);
+
+    color: #8A6418;
+
+    font-size: 8px;
+
+    line-height: 1.5;
+}
+
+
 
 /* =========================================================
    RESULT BUTTONS

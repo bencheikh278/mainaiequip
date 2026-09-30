@@ -7,8 +7,24 @@ from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from extract import extract_text
-from agent import analyser_rapport, synthese_globale
+from extract import (
+    extract_text,
+    ExtractionError,
+    FormatNonSupporte,
+    FichierVide,
+    FichierIllisible,
+    EXTENSIONS_ACCEPTEES,
+)
+from agent import (
+    analyser_rapport,
+    synthese_globale,
+    RapportVide,
+    DocumentTropLong,
+    JSONInvalide,
+    LMStudioIndisponible,
+    ModeleIndisponible,
+    MAX_CARACTERES_RAPPORT,
+)
 import bdd
 
 
@@ -41,6 +57,52 @@ app.add_middleware(
 )
 
 
+def message_erreur(erreur):
+    if isinstance(erreur, HTTPException):
+        return erreur
+
+    if isinstance(erreur, FormatNonSupporte):
+        return HTTPException(status_code=400, detail=str(erreur))
+
+    if isinstance(erreur, FichierVide):
+        return HTTPException(status_code=400, detail=str(erreur))
+
+    if isinstance(erreur, FichierIllisible):
+        return HTTPException(
+            status_code=400,
+            detail=str(erreur) or "Le document PDF, DOCX ou TXT est illisible.",
+        )
+
+    if isinstance(erreur, ExtractionError):
+        return HTTPException(status_code=400, detail=str(erreur))
+
+    if isinstance(erreur, RapportVide):
+        return HTTPException(status_code=400, detail=str(erreur))
+
+    if isinstance(erreur, DocumentTropLong):
+        return HTTPException(status_code=413, detail=str(erreur))
+
+    if isinstance(erreur, LMStudioIndisponible):
+        return HTTPException(status_code=503, detail=str(erreur))
+
+    if isinstance(erreur, ModeleIndisponible):
+        return HTTPException(status_code=503, detail=str(erreur))
+
+    if isinstance(erreur, JSONInvalide):
+        return HTTPException(
+            status_code=502,
+            detail=(
+                "La réponse du modèle local est invalide ou incomplète. "
+                f"{erreur}"
+            ),
+        )
+
+    return HTTPException(
+        status_code=500,
+        detail="Une erreur interne s'est produite pendant l'analyse.",
+    )
+
+
 # ============================================================
 # ROUTE PRINCIPALE
 # ============================================================
@@ -60,11 +122,13 @@ def home():
 @app.get("/api/health")
 def health():
     return {
-        "status": "ok"
+        "status": "ok",
+       
     }
 
+
 # ============================================================
-# HISTORIQUE 
+# HISTORIQUE
 # ============================================================
 
 @app.get("/api/historique")
@@ -96,10 +160,10 @@ def obtenir_historique():
         reverse=True
     )
 
-
     return {
         "historique": resume
     }
+
 
 # ============================================================
 # CALCUL DU HASH
@@ -150,6 +214,15 @@ async def traiter_un_fichier(fichier: UploadFile):
         fichier.filename
     )[1].lower()
 
+    if extension not in EXTENSIONS_ACCEPTEES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Format non supporté pour {fichier.filename}. "
+                "Formats acceptés : PDF, DOCX, TXT."
+            )
+        )
+
     chemin_temp = None
 
     try:
@@ -169,13 +242,10 @@ async def traiter_un_fichier(fichier: UploadFile):
 
         print(" Extraction du texte...")
 
-        texte = extract_text(chemin_temp)
-
-        if not texte:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Impossible d'extraire le texte de {fichier.filename}."
-            )
+        try:
+            texte = extract_text(chemin_temp)
+        except ExtractionError as erreur:
+            raise message_erreur(erreur)
 
         texte = texte.strip()
 
@@ -183,6 +253,15 @@ async def traiter_un_fichier(fichier: UploadFile):
             raise HTTPException(
                 status_code=400,
                 detail=f"{fichier.filename} ne contient pas assez de texte exploitable."
+            )
+
+        if len(texte) > MAX_CARACTERES_RAPPORT:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"{fichier.filename} dépasse la limite supportée "
+                    f"({MAX_CARACTERES_RAPPORT} caractères)."
+                )
             )
 
         print(f" Texte extrait : {len(texte)} caractères")
@@ -226,7 +305,16 @@ async def traiter_un_fichier(fichier: UploadFile):
 
                 print(" Nouvelle analyse IA...")
 
-                resultat = analyser_rapport(texte)
+                try:
+                    resultat = analyser_rapport(texte)
+                except (
+                    RapportVide,
+                    DocumentTropLong,
+                    JSONInvalide,
+                    LMStudioIndisponible,
+                    ModeleIndisponible,
+                ) as erreur:
+                    raise message_erreur(erreur)
 
                 if not resultat:
                     raise HTTPException(
@@ -284,7 +372,7 @@ async def analyser_fichiers(
         )
 
     # --------------------------------------------------------
-    # 1. TRAITER CHAQUE FICHIER 
+    # 1. TRAITER CHAQUE FICHIER
     # --------------------------------------------------------
 
     resultats = []
@@ -330,6 +418,16 @@ async def analyser_fichiers(
             historique
         )
 
+    except (
+        
+        ModeleIndisponible,
+        JSONInvalide,
+        DocumentTropLong,
+    ) as e:
+
+        print(f" Erreur synthèse : {e}")
+        raise message_erreur(e)
+
     except Exception as e:
 
         print(f" Erreur synthèse : {e}")
@@ -338,7 +436,7 @@ async def analyser_fichiers(
             status_code=503,
             detail=(
                 "Le service IA est temporairement indisponible. "
-                "Veuillez réessayer dans quelques instants."
+                
             )
         )
 
@@ -351,7 +449,16 @@ async def analyser_fichiers(
     return {
         "status": "success",
 
-        "analyses": resultats,   # liste, un élément par fichier
+        "analyses": resultats,
 
-        "synthese": synthese
+        "synthese": {
+            "synthese_interventions": synthese.get(
+                "synthese_interventions",
+                []
+            ),
+            "recommandations": synthese.get(
+                "recommandations",
+                []
+            ),
+        }
     }

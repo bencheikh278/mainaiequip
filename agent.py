@@ -3,17 +3,51 @@ import re
 
 from openai import OpenAI
 
+try:
+    from openai import APIConnectionError, APIStatusError, APITimeoutError, NotFoundError
+except ImportError:
+    APIConnectionError = ConnectionError
+    APITimeoutError = TimeoutError
+    APIStatusError = Exception
+    NotFoundError = Exception
+
 
 # ============================================================
 # CLIENT LOCAL — LM STUDIO
 # ============================================================
 
+LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
+
 client_local = OpenAI(
     api_key="lm-studio",
-    base_url="http://localhost:1234/v1",
+    base_url=LM_STUDIO_BASE_URL,
 )
-
+#modele utuliser  for now 
 MODEL = "mistralai/ministral-3-3b"
+
+
+class SynIAError(Exception):
+    """Erreur métier SYNIA."""
+
+
+class RapportVide(SynIAError, ValueError):
+    """Rapport sans texte."""
+
+
+class DocumentTropLong(SynIAError):
+    """Document trop long pour le modèle local."""
+
+
+class JSONInvalide(SynIAError, ValueError):
+    """Réponse du modèle absente, incomplète ou non JSON."""
+
+
+class LMStudioIndisponible(SynIAError):
+    """LM Studio n'est pas joignable."""
+
+
+class ModeleIndisponible(SynIAError):
+    """Le modèle local demandé n'est pas chargé."""
 
 
 # ============================================================
@@ -25,7 +59,7 @@ MODEL = "mistralai/ministral-3-3b"
 # n'aura pas de recommandation finale.
 IGNORER_EQUIPEMENTS_SANS_PROBLEME = True
 
-MAX_ACTIONS_PAR_EQUIPEMENT = 4
+MAX_ACTIONS_PAR_EQUIPEMENT = 3
 
 # Nombre maximum de caractères du rapport envoyé au modèle.
 MAX_CARACTERES_RAPPORT = 12000
@@ -390,13 +424,13 @@ def parser_json(texte):
             " "
         )
 
-        raise ValueError(
+        raise JSONInvalide(
             f"JSON invalide : {erreur}. "
             f"Début de réponse : {extrait}"
         ) from erreur
 
     if not isinstance(resultat, dict):
-        raise ValueError(
+        raise JSONInvalide(
             "La réponse JSON n'est pas un objet."
         )
 
@@ -404,8 +438,74 @@ def parser_json(texte):
 
 
 # ============================================================
-# APPEL LM STUDIO
+# APPEL Llm
 # ============================================================
+
+def _est_erreur_connexion(erreur):
+    if isinstance(erreur, (APIConnectionError, APITimeoutError, ConnectionError, TimeoutError)):
+        return True
+
+    message = str(erreur).lower()
+
+    indices = (
+        "connection",
+        "connect",
+        "refused",
+        "10061",
+        "timed out",
+        "timeout",
+        "unreachable",
+        "name or service not known",
+        "failed to establish",
+    )
+
+    return any(indice in message for indice in indices)
+
+
+def _est_erreur_modele(erreur):
+    status = getattr(erreur, "status_code", None)
+
+    if status in (404, 400):
+        message = str(erreur).lower()
+        if "model" in message or status == 404:
+            return True
+
+    if isinstance(erreur, NotFoundError):
+        return True
+
+    message = str(erreur).lower()
+
+    indices = (
+        "model_not_found",
+        "model not found",
+        "does not exist",
+        "unknown model",
+        "no models loaded",
+        "not loaded",
+    )
+
+    return any(indice in message for indice in indices)
+
+
+def _lever_erreur_lm(erreur):
+    if _est_erreur_connexion(erreur):
+        raise LMStudioIndisponible(
+            "LM Studio est indisponible. "
+           
+        ) from erreur
+
+    if _est_erreur_modele(erreur):
+        raise ModeleIndisponible(
+            f"Le modèle local « {MODEL} » n'est pas disponible . "
+            "Chargez exactement ce modèle avant l'analyse."
+        ) from erreur
+
+    if isinstance(erreur, APIStatusError):
+        raise LMStudioIndisponible(
+            "LM Studio a renvoyé une erreur. "
+            "Vérifiez que le serveur local et le modèle sont actifs."
+        ) from erreur
+
 
 def appeler_modele(
     prompt,
@@ -418,7 +518,7 @@ def appeler_modele(
     Première tentative :
     JSON Schema structuré.
 
-    Si le serveur/modèle refuse :
+    Si le serveur/modèle refuse le schema :
     seconde tentative avec json_object.
     """
 
@@ -445,8 +545,10 @@ def appeler_modele(
 
     except Exception as erreur:
 
+        _lever_erreur_lm(erreur)
+
         print(
-            "⚠️ Sortie structurée échouée."
+            "Sortie structurée échouée."
         )
 
         print(
@@ -460,32 +562,42 @@ def appeler_modele(
               "un objet JSON valide, sans markdown."
         )
 
-        response = client_local.chat.completions.create(
+        try:
 
-            model=MODEL,
+            response = client_local.chat.completions.create(
 
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
+                model=MODEL,
+
+                messages=[
+                    {
+                        "role": "system",
+                        "content": SYSTEM_PROMPT,
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt_json,
+                    },
+                ],
+
+                response_format={
+                    "type": "json_object"
                 },
-                {
-                    "role": "user",
-                    "content": prompt_json,
-                },
-            ],
 
-            response_format={
-                "type": "json_object"
-            },
+                temperature=0.1,
 
-            temperature=0.1,
+                max_tokens=max_tokens,
+            )
 
-            max_tokens=max_tokens,
-        )
+        except Exception as erreur_json:
+
+            _lever_erreur_lm(erreur_json)
+
+            raise LMStudioIndisponible(
+                "Impossible d'obtenir une réponse du modèle local."
+            ) from erreur_json
 
     if not response.choices:
-        raise RuntimeError(
+        raise JSONInvalide(
             "LM Studio n'a retourné aucun choix."
         )
 
@@ -501,8 +613,8 @@ def appeler_modele(
             "inconnue"
         )
 
-        raise RuntimeError(
-            "Réponse vide du modèle "
+        raise JSONInvalide(
+            "Réponse vide ou incomplète du modèle "
             f"(finish_reason={raison})."
         )
 
@@ -884,22 +996,19 @@ RAPPORT :
 def analyser_rapport(texte):
 
     if not texte or not str(texte).strip():
-        raise ValueError(
+        raise RapportVide(
             "Le texte du rapport est vide."
         )
 
     texte = str(texte)
 
-    # Protection contre les NaN provenant d'Excel
-    texte = texte.replace(
-        "NaN",
-        "non renseigné"
-    )
+    if len(texte) > MAX_CARACTERES_RAPPORT:
+        raise DocumentTropLong(
+            "Le document dépasse la limite supportée "
+            f"({MAX_CARACTERES_RAPPORT} caractères)."
+        )
 
-    # Limitation du texte
-    texte = texte[
-        :MAX_CARACTERES_RAPPORT
-    ]
+   
 
     # ----------------------------------------
     # ETAPE 1 :
@@ -932,7 +1041,7 @@ def analyser_rapport(texte):
             noms.append(nom)
 
     print(
-        f"🔎 Équipements trouvés : {noms}"
+        f" Équipements trouvés : {noms}"
     )
 
     # ----------------------------------------
@@ -957,10 +1066,19 @@ def analyser_rapport(texte):
                 faits
             )
 
+        except (
+            LMStudioIndisponible,
+            ModeleIndisponible,
+            JSONInvalide,
+            DocumentTropLong,
+        ):
+
+            raise
+
         except Exception as erreur:
 
             print(
-                f"⚠️ Équipement {nom} ignoré : "
+                f" Équipement {nom} ignoré : "
                 f"{erreur}"
             )
 
@@ -2007,10 +2125,18 @@ def generer_resultat_final(
                 )
             )
 
+        except (
+            LMStudioIndisponible,
+            ModeleIndisponible,
+            JSONInvalide,
+        ):
+
+            raise
+
         except Exception as erreur:
 
             print(
-                f"⚠️ Échec IA pour {nom} : "
+                f" Échec IA pour {nom} : "
                 f"{erreur}"
             )
 
