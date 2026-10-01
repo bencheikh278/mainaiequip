@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import requests
 
@@ -11,7 +11,6 @@ import requests
 
 BASE_URL = "http://10.109.28.102:8000"
 GENERATION_ENDPOINT = "/v1/chat/completions"
-
 MODEL = "sonatrach-IA"
 
 TIMEOUT = 180
@@ -160,7 +159,6 @@ def appeler_modele(
 
     payload = {
         "model": MODEL,
-
         "messages": [
             {
                 "role": "system",
@@ -171,12 +169,9 @@ def appeler_modele(
                 "content": prompt
             }
         ],
-
         "temperature": 0.1,
-
         "max_tokens": max_tokens
     }
-
 
     print("\n==========================================")
     print(">>> APPEL VLLM")
@@ -184,9 +179,7 @@ def appeler_modele(
     print(">>> MODEL :", MODEL)
     print("==========================================\n")
 
-
     try:
-
         response = requests.post(
             url,
             json=payload,
@@ -201,12 +194,7 @@ def appeler_modele(
             f"Impossible de contacter le serveur VLLM : {e}"
         )
 
-
-    print(
-        ">>> STATUS VLLM :",
-        response.status_code
-    )
-
+    print(">>> STATUS VLLM :", response.status_code)
 
     if response.status_code != 200:
 
@@ -219,9 +207,7 @@ def appeler_modele(
             f"VLLM a retourné HTTP {response.status_code}"
         )
 
-
     try:
-
         data = response.json()
 
     except Exception as e:
@@ -230,14 +216,9 @@ def appeler_modele(
             f"Réponse VLLM non JSON : {e}"
         )
 
-
     try:
 
-        content = (
-            data["choices"][0]
-                ["message"]
-                ["content"]
-        )
+        content = data["choices"][0]["message"]["content"]
 
     except Exception:
 
@@ -250,11 +231,9 @@ def appeler_modele(
             "Impossible de récupérer le contenu du modèle."
         )
 
-
     print("\n>>> REPONSE MODELE :")
     print(content)
     print("\n")
-
 
     return nettoyer_json(content)
 
@@ -270,14 +249,9 @@ def nettoyer_json(texte: str) -> Any:
             "Réponse du modèle vide."
         )
 
-
     texte = texte.strip()
 
-
-    # --------------------------------------------------------
     # Retirer les blocs markdown ```json ... ```
-    # --------------------------------------------------------
-
     texte = re.sub(
         r"^```json\s*",
         "",
@@ -299,26 +273,16 @@ def nettoyer_json(texte: str) -> Any:
 
     texte = texte.strip()
 
-
-    # --------------------------------------------------------
     # Premier essai direct
-    # --------------------------------------------------------
-
     try:
-
         return json.loads(texte)
 
     except json.JSONDecodeError:
         pass
 
-
-    # --------------------------------------------------------
     # Chercher objet JSON
-    # --------------------------------------------------------
-
     debut_objet = texte.find("{")
     fin_objet = texte.rfind("}")
-
 
     if (
         debut_objet != -1
@@ -327,25 +291,18 @@ def nettoyer_json(texte: str) -> Any:
     ):
 
         extrait = texte[
-            debut_objet:
-            fin_objet + 1
+            debut_objet:fin_objet + 1
         ]
 
         try:
-
             return json.loads(extrait)
 
         except json.JSONDecodeError:
             pass
 
-
-    # --------------------------------------------------------
     # Chercher tableau JSON
-    # --------------------------------------------------------
-
     debut_liste = texte.find("[")
     fin_liste = texte.rfind("]")
-
 
     if (
         debut_liste != -1
@@ -354,24 +311,17 @@ def nettoyer_json(texte: str) -> Any:
     ):
 
         extrait = texte[
-            debut_liste:
-            fin_liste + 1
+            debut_liste:fin_liste + 1
         ]
 
         try:
-
             return json.loads(extrait)
 
         except json.JSONDecodeError:
             pass
 
-
-    print(
-        ">>> JSON IMPOSSIBLE À PARSER :"
-    )
-
+    print(">>> JSON IMPOSSIBLE À PARSER :")
     print(texte)
-
 
     raise ReponseModeleInvalide(
         "Le modèle n'a pas retourné un JSON valide."
@@ -430,33 +380,24 @@ Retourne UNIQUEMENT :
 }}
 """
 
-
     resultat = appeler_modele(
         prompt,
         max_tokens=1200
     )
 
-
     if not isinstance(resultat, dict):
-
         return []
 
+    equipements = resultat.get(
+        "equipements",
+        []
+    )
 
-    equipements =
-        resultat.get(
-            "equipements",
-            []
-        )
-
-
-    equipements =
-        normaliser_liste(
-            equipements
-        )
-
+    equipements = normaliser_liste(
+        equipements
+    )
 
     resultat_final = []
-
 
     for equipement in equipements:
 
@@ -472,17 +413,12 @@ Retourne UNIQUEMENT :
             continue
 
         if equipement not in resultat_final:
-
-            resultat_final.append(
-                equipement
-            )
-
+            resultat_final.append(equipement)
 
     print(
         ">>> EQUIPEMENTS IDENTIFIÉS :",
         resultat_final
     )
-
 
     return resultat_final
 
@@ -601,20 +537,16 @@ Retourne uniquement :
 }}
 """
 
-
     resultat = appeler_modele(
         prompt,
         max_tokens=2200
     )
 
-
     if not isinstance(
         resultat,
         dict
     ):
-
         resultat = {}
-
 
     resultat.setdefault(
         "description",
@@ -656,9 +588,7 @@ Retourne uniquement :
         []
     )
 
-
     # Normaliser les listes
-
     for champ in [
         "anomalies",
         "causes",
@@ -669,11 +599,9 @@ Retourne uniquement :
         "techniciens"
     ]:
 
-        resultat[champ] =
-            normaliser_liste(
-                resultat.get(champ)
-            )
-
+        resultat[champ] = normaliser_liste(
+            resultat.get(champ)
+        )
 
     print(
         "\n>>> EXTRACTION :",
@@ -687,7 +615,6 @@ Retourne uniquement :
             indent=2
         )
     )
-
 
     return resultat
 
@@ -811,101 +738,61 @@ Priorités autorisées :
 - élevée
 """
 
-
     resultat = appeler_modele(
         prompt,
         max_tokens=2200
     )
 
-
     if not isinstance(
         resultat,
         dict
     ):
-
         resultat = {}
 
-
-    # --------------------------------------------------------
     # Valeurs par défaut
-    # --------------------------------------------------------
-
-    resultat["equipement"] =
-        equipement
-
+    resultat["equipement"] = equipement
 
     resultat.setdefault(
         "description",
-        faits.get(
-            "description"
-        )
+        faits.get("description")
     )
-
 
     resultat.setdefault(
         "anomalies",
-        faits.get(
-            "anomalies",
-            []
-        )
+        faits.get("anomalies", [])
     )
-
 
     resultat.setdefault(
         "causes",
-        faits.get(
-            "causes",
-            []
-        )
+        faits.get("causes", [])
     )
-
 
     resultat.setdefault(
         "interventions_realisees",
-        faits.get(
-            "interventions_realisees",
-            []
-        )
+        faits.get("interventions_realisees", [])
     )
-
 
     resultat.setdefault(
         "interventions_planifiees",
-        faits.get(
-            "interventions_planifiees",
-            []
-        )
+        faits.get("interventions_planifiees", [])
     )
-
 
     resultat.setdefault(
         "resultats",
-        faits.get(
-            "resultats",
-            []
-        )
+        faits.get("resultats", [])
     )
-
 
     resultat.setdefault(
         "informations_techniques",
-        faits.get(
-            "informations_techniques",
-            []
-        )
+        faits.get("informations_techniques", [])
     )
-
 
     resultat.setdefault(
         "recommandations",
         []
     )
 
-
-    # --------------------------------------------------------
     # Normalisation
-    # --------------------------------------------------------
-
     for champ in [
         "anomalies",
         "causes",
@@ -916,11 +803,9 @@ Priorités autorisées :
         "recommandations"
     ]:
 
-        resultat[champ] =
-            normaliser_liste(
-                resultat.get(champ)
-            )
-
+        resultat[champ] = normaliser_liste(
+            resultat.get(champ)
+        )
 
     print(
         "\n>>> ANALYSE ÉQUIPEMENT :",
@@ -934,7 +819,6 @@ Priorités autorisées :
             indent=2
         )
     )
-
 
     return resultat
 
@@ -953,7 +837,6 @@ def analyser_rapport(
             "Le texte du rapport est vide."
         )
 
-
     print("\n")
     print("==========================================")
     print(">>> ANALYSE DU RAPPORT")
@@ -963,16 +846,10 @@ def analyser_rapport(
         len(texte)
     )
 
-
-    # --------------------------------------------------------
     # 1. Identifier les équipements
-    # --------------------------------------------------------
-
-    equipements =
-        _lister_equipements(
-            texte
-        )
-
+    equipements = _lister_equipements(
+        texte
+    )
 
     if not equipements:
 
@@ -982,42 +859,31 @@ def analyser_rapport(
 
         return []
 
-
     print(
         ">>> Nombre d'équipements :",
         len(equipements)
     )
 
-
     analyses = []
 
-
-    # --------------------------------------------------------
     # 2. Analyser chaque équipement
-    # --------------------------------------------------------
-
     for equipement in equipements:
 
         try:
 
-            faits =
-                _extraire_equipement(
-                    texte,
-                    equipement
-                )
+            faits = _extraire_equipement(
+                texte,
+                equipement
+            )
 
-
-            analyse =
-                _analyser_equipement(
-                    equipement,
-                    faits
-                )
-
+            analyse = _analyser_equipement(
+                equipement,
+                faits
+            )
 
             analyses.append(
                 analyse
             )
-
 
         except Exception as e:
 
@@ -1029,7 +895,6 @@ def analyser_rapport(
             # Ne pas arrêter tout le rapport
             continue
 
-
     print("\n")
     print("==========================================")
     print(">>> ANALYSE RAPPORT TERMINÉE")
@@ -1038,7 +903,6 @@ def analyser_rapport(
         len(analyses)
     )
     print("==========================================")
-
 
     return analyses
 
@@ -1057,7 +921,6 @@ def synthese_globale(
             "synthese_interventions": [],
             "recommandations": []
         }
-
 
     prompt = f"""
 Tu es SYNIA, spécialisé dans la synthèse de rapports
@@ -1204,15 +1067,12 @@ Retourne UNIQUEMENT un JSON valide :
 Ne retourne aucun texte avant ou après le JSON.
 """
 
-
     try:
 
-        resultat =
-            appeler_modele(
-                prompt,
-                max_tokens=3500
-            )
-
+        resultat = appeler_modele(
+            prompt,
+            max_tokens=3500
+        )
 
     except Exception as e:
 
@@ -1226,7 +1086,6 @@ Ne retourne aucun texte avant ou après le JSON.
             "recommandations": []
         }
 
-
     if not isinstance(
         resultat,
         dict
@@ -1237,39 +1096,29 @@ Ne retourne aucun texte avant ou après le JSON.
             "recommandations": []
         }
 
+    synthese_interventions = resultat.get(
+        "synthese_interventions",
+        []
+    )
 
-    synthese_interventions =
-        resultat.get(
-            "synthese_interventions",
-            []
-        )
+    recommandations = resultat.get(
+        "recommandations",
+        []
+    )
 
+    synthese_interventions = normaliser_liste(
+        synthese_interventions
+    )
 
-    recommandations =
-        resultat.get(
-            "recommandations",
-            []
-        )
-
-
-    synthese_interventions =
-        normaliser_liste(
-            synthese_interventions
-        )
-
-
-    recommandations =
-        normaliser_liste(
-            recommandations
-        )
-
+    recommandations = normaliser_liste(
+        recommandations
+    )
 
     # --------------------------------------------------------
     # Nettoyage synthèse
     # --------------------------------------------------------
 
     synthese_finale = []
-
 
     for item in synthese_interventions:
 
@@ -1287,54 +1136,44 @@ Ne retourne aucun texte avant ou après le JSON.
 
             continue
 
-
         if not isinstance(
             item,
             dict
         ):
             continue
 
+        equipement = item.get(
+            "equipement",
+            ""
+        )
 
-        equipement =
-            item.get(
-                "equipement",
-                ""
-            )
-
-
-        resume =
-            item.get(
-                "resume",
-                ""
-            )
-
+        resume = item.get(
+            "resume",
+            ""
+        )
 
         if not resume:
 
-            resume =
-                item.get(
-                    "synthese",
-                    ""
-                )
+            resume = item.get(
+                "synthese",
+                ""
+            )
 
+        if not resume:
+            continue
 
         synthese_finale.append(
             {
-                "equipement":
-                    equipement,
-
-                "resume":
-                    resume
+                "equipement": equipement,
+                "resume": resume
             }
         )
-
 
     # --------------------------------------------------------
     # Nettoyage recommandations
     # --------------------------------------------------------
 
     recommandations_finales = []
-
 
     for item in recommandations:
 
@@ -1353,34 +1192,26 @@ Ne retourne aucun texte avant ou après le JSON.
 
             continue
 
-
         if not isinstance(
             item,
             dict
         ):
             continue
 
+        equipement = item.get(
+            "equipement",
+            ""
+        )
 
-        equipement =
-            item.get(
-                "equipement",
-                ""
-            )
+        action = item.get(
+            "action",
+            ""
+        )
 
-
-        action =
-            item.get(
-                "action",
-                ""
-            )
-
-
-        priorite =
-            item.get(
-                "priorite",
-                "faible"
-            )
-
+        priorite = item.get(
+            "priorite",
+            "faible"
+        )
 
         if priorite not in [
             "faible",
@@ -1390,35 +1221,21 @@ Ne retourne aucun texte avant ou après le JSON.
 
             priorite = "faible"
 
-
         if not action:
             continue
 
-
         recommandations_finales.append(
             {
-                "equipement":
-                    equipement,
-
-                "action":
-                    action,
-
-                "priorite":
-                    priorite
+                "equipement": equipement,
+                "action": action,
+                "priorite": priorite
             }
         )
 
-
     resultat_final = {
-
-        "synthese_interventions":
-            synthese_finale,
-
-        "recommandations":
-            recommandations_finales
-
+        "synthese_interventions": synthese_finale,
+        "recommandations": recommandations_finales
     }
-
 
     print("\n")
     print("==========================================")
@@ -1435,6 +1252,5 @@ Ne retourne aucun texte avant ou après le JSON.
 
     print("==========================================")
     print("\n")
-
 
     return resultat_final
