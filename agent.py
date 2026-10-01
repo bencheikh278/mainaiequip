@@ -36,8 +36,6 @@ class VLLMIndisponible(SynIAError):
     pass
 
 
-class ModeleIndisponible(SynIAError):
-    pass
 
 
 # ============================================================
