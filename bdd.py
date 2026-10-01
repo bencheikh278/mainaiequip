@@ -6,7 +6,7 @@ CHEMIN_DB = "output/synia.db"
 
 
 # ============================================================
-# CONNEXION À SQLITE
+# CONNEXION SQLITE
 # ============================================================
 
 def connecter():
@@ -25,7 +25,7 @@ def connecter():
     )
 
     # ========================================================
-    # TABLE RAPPORTS
+    # RAPPORTS
     # ========================================================
 
     connexion.execute("""
@@ -46,7 +46,7 @@ def connecter():
     """)
 
     # ========================================================
-    # TABLE EQUIPEMENTS
+    # EQUIPEMENTS
     # ========================================================
 
     connexion.execute("""
@@ -60,11 +60,17 @@ def connecter():
 
             type TEXT,
 
+            description TEXT,
+
             causes TEXT,
 
-            interventions TEXT,
+            interventions_realisees TEXT,
+
+            interventions_planifiees TEXT,
 
             resultats TEXT,
+
+            recommandations TEXT,
 
             FOREIGN KEY (rapport_id)
             REFERENCES rapports(id)
@@ -73,7 +79,7 @@ def connecter():
     """)
 
     # ========================================================
-    # TABLE ANOMALIES
+    # ANOMALIES
     # ========================================================
 
     connexion.execute("""
@@ -87,6 +93,8 @@ def connecter():
 
             niveau TEXT,
 
+            statut TEXT,
+
             FOREIGN KEY (equipement_id)
             REFERENCES equipements(id)
             ON DELETE CASCADE
@@ -99,7 +107,7 @@ def connecter():
 
 
 # ============================================================
-# VÉRIFIER SI LE HASH EXISTE
+# VERIFIER HASH
 # ============================================================
 
 def rapport_existe_par_hash(
@@ -120,18 +128,274 @@ def rapport_existe_par_hash(
 
 
 # ============================================================
-# RÉCUPÉRER UN RAPPORT PAR HASH
+# INSERER UN RAPPORT
+# ============================================================
+
+def inserer_rapport(
+    connexion,
+    donnees
+):
+
+    fichier = donnees.get(
+        "fichier"
+    )
+
+    hash_contenu = donnees.get(
+        "hash_contenu"
+    )
+
+    # --------------------------------------------------------
+    # Vérifier doublon
+    # --------------------------------------------------------
+
+    if rapport_existe_par_hash(
+        connexion,
+        hash_contenu
+    ):
+
+        print(
+            f"[BDD] Rapport déjà présent : {fichier}"
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # Insérer rapport
+    # --------------------------------------------------------
+
+    curseur = connexion.execute(
+        """
+        INSERT INTO rapports
+        (
+            fichier,
+            hash_contenu,
+            reference,
+            date,
+            analyse_le
+        )
+
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            fichier,
+            hash_contenu,
+            donnees.get("reference"),
+            donnees.get("date"),
+            donnees.get("analyse_le")
+        )
+    )
+
+    rapport_id = curseur.lastrowid
+
+    # --------------------------------------------------------
+    # Les analyses viennent de "analyses"
+    # --------------------------------------------------------
+
+    analyses = donnees.get(
+        "analyses",
+        []
+    )
+
+    for analyse in analyses:
+
+        nom = analyse.get(
+            "equipement"
+        )
+
+        description = analyse.get(
+            "description"
+        )
+
+        causes = analyse.get(
+            "causes",
+            []
+        )
+
+        interventions_realisees = analyse.get(
+            "interventions_realisees",
+            []
+        )
+
+        interventions_planifiees = analyse.get(
+            "interventions_planifiees",
+            []
+        )
+
+        resultats = analyse.get(
+            "resultats",
+            []
+        )
+
+        recommandations = analyse.get(
+            "recommandations",
+            []
+        )
+
+        # ----------------------------------------------------
+        # Type
+        # ----------------------------------------------------
+
+        type_equipement = analyse.get(
+            "type"
+        )
+
+        # ----------------------------------------------------
+        # Convertir recommandations en texte
+        # ----------------------------------------------------
+
+        recommandations_text = []
+
+        for rec in recommandations:
+
+            if isinstance(rec, dict):
+
+                action = rec.get(
+                    "action",
+                    ""
+                )
+
+                priorite = rec.get(
+                    "priorite",
+                    ""
+                )
+
+                if priorite:
+
+                    recommandations_text.append(
+                        f"{action} ({priorite})"
+                    )
+
+                else:
+
+                    recommandations_text.append(
+                        action
+                    )
+
+            else:
+
+                recommandations_text.append(
+                    str(rec)
+                )
+
+        # ----------------------------------------------------
+        # INSERTION EQUIPEMENT
+        # ----------------------------------------------------
+
+        curseur_eq = connexion.execute(
+            """
+            INSERT INTO equipements
+            (
+                rapport_id,
+                nom,
+                type,
+                description,
+                causes,
+                interventions_realisees,
+                interventions_planifiees,
+                resultats,
+                recommandations
+            )
+
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                rapport_id,
+
+                nom,
+
+                type_equipement,
+
+                description,
+
+                " | ".join(
+                    str(x)
+                    for x in causes
+                ),
+
+                " | ".join(
+                    str(x)
+                    for x in interventions_realisees
+                ),
+
+                " | ".join(
+                    str(x)
+                    for x in interventions_planifiees
+                ),
+
+                " | ".join(
+                    str(x)
+                    for x in resultats
+                ),
+
+                " | ".join(
+                    recommandations_text
+                )
+            )
+        )
+
+        equipement_id = curseur_eq.lastrowid
+
+        # ----------------------------------------------------
+        # ANOMALIES
+        # ----------------------------------------------------
+
+        anomalies = analyse.get(
+            "anomalies",
+            []
+        )
+
+        for anomalie in anomalies:
+
+            if not isinstance(
+                anomalie,
+                dict
+            ):
+                continue
+
+            connexion.execute(
+                """
+                INSERT INTO anomalies
+                (
+                    equipement_id,
+                    description,
+                    niveau,
+                    statut
+                )
+
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    equipement_id,
+
+                    anomalie.get(
+                        "description"
+                    ),
+
+                    anomalie.get(
+                        "niveau"
+                    ),
+
+                    anomalie.get(
+                        "statut"
+                    )
+                )
+            )
+
+    connexion.commit()
+
+    print(
+        f"[BDD] Rapport enregistré : {fichier}"
+    )
+
+
+# ============================================================
+# RECUPERER UN RAPPORT
 # ============================================================
 
 def recuperer_rapport_par_hash(
     connexion,
     hash_contenu
 ):
-
-    """
-    Récupère l'analyse complète d'un rapport
-    à partir de son hash.
-    """
 
     rapport = connexion.execute(
         """
@@ -156,7 +420,7 @@ def recuperer_rapport_par_hash(
 
     rapport_id = rapport[0]
 
-    donnees_rapport = {
+    donnees = {
 
         "fichier": rapport[1],
 
@@ -168,12 +432,12 @@ def recuperer_rapport_par_hash(
 
         "analyse_le": rapport[5],
 
-        "equipements": []
+        "analyses": []
     }
 
-    # ========================================================
-    # RÉCUPÉRER LES ÉQUIPEMENTS
-    # ========================================================
+    # --------------------------------------------------------
+    # EQUIPMENTS
+    # --------------------------------------------------------
 
     equipements = connexion.execute(
         """
@@ -181,9 +445,12 @@ def recuperer_rapport_par_hash(
             id,
             nom,
             type,
+            description,
             causes,
-            interventions,
-            resultats
+            interventions_realisees,
+            interventions_planifiees,
+            resultats,
+            recommandations
 
         FROM equipements
 
@@ -196,15 +463,16 @@ def recuperer_rapport_par_hash(
 
         equipement_id = eq[0]
 
-        # ====================================================
-        # RÉCUPÉRER LES ANOMALIES
-        # ====================================================
+        # ----------------------------------------------------
+        # ANOMALIES
+        # ----------------------------------------------------
 
-        anomalies = connexion.execute(
+        anomalies_sql = connexion.execute(
             """
             SELECT
                 description,
-                niveau
+                niveau,
+                statut
 
             FROM anomalies
 
@@ -213,245 +481,95 @@ def recuperer_rapport_par_hash(
             (equipement_id,)
         ).fetchall()
 
-        liste_anomalies = []
+        anomalies = []
 
-        for anomalie in anomalies:
+        for anomalie in anomalies_sql:
 
-            liste_anomalies.append({
+            anomalies.append({
 
                 "description": anomalie[0],
 
-                "niveau": anomalie[1]
+                "niveau": anomalie[1],
+
+                "statut": anomalie[2]
             })
 
-        # ====================================================
-        # RECONSTRUIRE LES LISTES
-        # ====================================================
+        # ----------------------------------------------------
+        # RECONSTRUIRE
+        # ----------------------------------------------------
 
         causes = (
-            eq[3].split(" | ")
-            if eq[3]
-            else []
-        )
-
-        interventions = (
             eq[4].split(" | ")
             if eq[4]
             else []
         )
 
-        resultats = (
+        interventions_realisees = (
             eq[5].split(" | ")
             if eq[5]
             else []
         )
 
-        donnees_rapport[
-            "equipements"
-        ].append({
+        interventions_planifiees = (
+            eq[6].split(" | ")
+            if eq[6]
+            else []
+        )
 
-            "nom": eq[1],
+        resultats = (
+            eq[7].split(" | ")
+            if eq[7]
+            else []
+        )
+
+        recommandations_brutes = (
+            eq[8].split(" | ")
+            if eq[8]
+            else []
+        )
+
+        recommandations = []
+
+        for rec in recommandations_brutes:
+
+            recommandations.append({
+                "action": rec
+            })
+
+        donnees["analyses"].append({
+
+            "equipement": eq[1],
 
             "type": eq[2],
 
-            "anomalies": liste_anomalies,
+            "description": eq[3],
+
+            "anomalies": anomalies,
 
             "causes": causes,
 
-            "interventions": interventions,
+            "interventions_realisees":
+                interventions_realisees,
 
-            "resultats": resultats
+            "interventions_planifiees":
+                interventions_planifiees,
+
+            "resultats": resultats,
+
+            "recommandations":
+                recommandations
         })
 
-    return donnees_rapport
+    return donnees
 
 
 # ============================================================
-# INSÉRER UN RAPPORT
-# ============================================================
-
-def inserer_rapport(
-    connexion,
-    donnees
-):
-
-    """
-    Enregistre l'analyse complète d'un rapport.
-
-    Le hash du contenu permet d'éviter de réanalyser
-    exactement le même document.
-    """
-
-    fichier = donnees.get(
-        "fichier"
-    )
-
-    hash_contenu = donnees.get(
-        "hash_contenu"
-    )
-
-    # ========================================================
-    # VÉRIFIER SI LE CONTENU EXISTE DÉJÀ
-    # ========================================================
-
-    if rapport_existe_par_hash(
-        connexion,
-        hash_contenu
-    ):
-
-        return
-
-    # ========================================================
-    # INSÉRER LE RAPPORT
-    # ========================================================
-
-    curseur = connexion.execute(
-        """
-        INSERT INTO rapports
-        (
-            fichier,
-            hash_contenu,
-            reference,
-            date,
-            analyse_le
-        )
-
-        VALUES (?, ?, ?, ?, ?)
-        """,
-
-        (
-            fichier,
-
-            hash_contenu,
-
-            donnees.get(
-                "reference"
-            ),
-
-            donnees.get(
-                "date"
-            ),
-
-            donnees.get(
-                "analyse_le"
-            )
-        )
-    )
-
-    rapport_id = curseur.lastrowid
-
-    # ========================================================
-    # INSÉRER LES ÉQUIPEMENTS
-    # ========================================================
-
-    for eq in donnees.get(
-        "equipements",
-        []
-    ):
-
-        curseur_eq = connexion.execute(
-            """
-            INSERT INTO equipements
-            (
-                rapport_id,
-                nom,
-                type,
-                causes,
-                interventions,
-                resultats
-            )
-
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-
-            (
-
-                rapport_id,
-
-                eq.get("nom"),
-
-                eq.get("type"),
-
-                " | ".join(
-                    str(c)
-                    for c in eq.get(
-                        "causes",
-                        []
-                    )
-                ),
-
-                " | ".join(
-                    str(i)
-                    for i in eq.get(
-                        "interventions",
-                        []
-                    )
-                ),
-
-                " | ".join(
-                    str(r)
-                    for r in eq.get(
-                        "resultats",
-                        []
-                    )
-                )
-            )
-        )
-
-        equipement_id = (
-            curseur_eq.lastrowid
-        )
-
-        # ====================================================
-        # INSÉRER LES ANOMALIES
-        # ====================================================
-    
-        for anomalie in eq.get(
-            "anomalies",
-            []
-        ):
-
-            connexion.execute(
-                """
-                INSERT INTO anomalies
-                (
-                    equipement_id,
-                    description,
-                    niveau
-                )
-
-                VALUES (?, ?, ?)
-                """,
-
-                (
-
-                    equipement_id,
-
-                    anomalie.get(
-                        "description"
-                    ),
-
-                    anomalie.get(
-                        "niveau"
-                    )
-                )
-            )
-
-    connexion.commit()
-
-
-# ============================================================
-# RÉCUPÉRER TOUT L'HISTORIQUE
+# HISTORIQUE COMPLET
 # ============================================================
 
 def recuperer_historique(
     connexion
 ):
-
-    """
-    Récupère tous les rapports analysés
-    dans SQLite.
-    """
 
     rapports = connexion.execute(
         """
@@ -475,7 +593,7 @@ def recuperer_historique(
 
         rapport_id = rapport[0]
 
-        donnees_rapport = {
+        donnees = {
 
             "fichier": rapport[1],
 
@@ -487,12 +605,8 @@ def recuperer_historique(
 
             "analyse_le": rapport[5],
 
-            "equipements": []
+            "analyses": []
         }
-
-        # ====================================================
-        # ÉQUIPEMENTS
-        # ====================================================
 
         equipements = connexion.execute(
             """
@@ -500,9 +614,12 @@ def recuperer_historique(
                 id,
                 nom,
                 type,
+                description,
                 causes,
-                interventions,
-                resultats
+                interventions_realisees,
+                interventions_planifiees,
+                resultats,
+                recommandations
 
             FROM equipements
 
@@ -515,15 +632,12 @@ def recuperer_historique(
 
             equipement_id = eq[0]
 
-            # =================================================
-            # ANOMALIES
-            # =================================================
-
-            anomalies = connexion.execute(
+            anomalies_sql = connexion.execute(
                 """
                 SELECT
                     description,
-                    niveau
+                    niveau,
+                    statut
 
                 FROM anomalies
 
@@ -532,54 +646,79 @@ def recuperer_historique(
                 (equipement_id,)
             ).fetchall()
 
-            liste_anomalies = []
+            anomalies = []
 
-            for anomalie in anomalies:
+            for anomalie in anomalies_sql:
 
-                liste_anomalies.append({
+                anomalies.append({
 
                     "description": anomalie[0],
 
-                    "niveau": anomalie[1]
+                    "niveau": anomalie[1],
+
+                    "statut": anomalie[2]
                 })
 
             causes = (
-                eq[3].split(" | ")
-                if eq[3]
-                else []
-            )
-
-            interventions = (
                 eq[4].split(" | ")
                 if eq[4]
                 else []
             )
 
-            resultats = (
+            interventions_realisees = (
                 eq[5].split(" | ")
                 if eq[5]
                 else []
             )
 
-            donnees_rapport[
-                "equipements"
-            ].append({
+            interventions_planifiees = (
+                eq[6].split(" | ")
+                if eq[6]
+                else []
+            )
 
-                "nom": eq[1],
+            resultats = (
+                eq[7].split(" | ")
+                if eq[7]
+                else []
+            )
+
+            recommandations = (
+                eq[8].split(" | ")
+                if eq[8]
+                else []
+            )
+
+            donnees["analyses"].append({
+
+                "equipement": eq[1],
 
                 "type": eq[2],
 
-                "anomalies": liste_anomalies,
+                "description": eq[3],
+
+                "anomalies": anomalies,
 
                 "causes": causes,
 
-                "interventions": interventions,
+                "interventions_realisees":
+                    interventions_realisees,
 
-                "resultats": resultats
+                "interventions_planifiees":
+                    interventions_planifiees,
+
+                "resultats": resultats,
+
+                "recommandations": [
+                    {
+                        "action": r
+                    }
+                    for r in recommandations
+                ]
             })
 
         historique.append(
-            donnees_rapport
+            donnees
         )
 
     return historique
@@ -637,7 +776,8 @@ def statistiques(
 
     return {
 
-        "nb_rapports": nb_rapports,
+        "nb_rapports":
+            nb_rapports,
 
         "nb_equipements_distincts":
             nb_equipements,
