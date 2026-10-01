@@ -20,11 +20,9 @@ from extract import (
 from agent import (
     analyser_rapport,
     synthese_globale,
-    RapportVide,
-    DocumentTropLong,
-    JSONInvalide,
+    
+    
     VLLMIndisponible,
-    MAX_CARACTERES_RAPPORT,
 )
 
 import bdd
@@ -98,17 +96,7 @@ def message_erreur(erreur):
             detail=str(erreur),
         )
 
-    if isinstance(erreur, RapportVide):
-        return HTTPException(
-            status_code=400,
-            detail=str(erreur),
-        )
-
-    if isinstance(erreur, DocumentTropLong):
-        return HTTPException(
-            status_code=413,
-            detail=str(erreur),
-        )
+    
 
     if isinstance(erreur, VLLMIndisponible):
         return HTTPException(
@@ -116,15 +104,7 @@ def message_erreur(erreur):
             detail=str(erreur),
         )
 
-    if isinstance(erreur, JSONInvalide):
-        return HTTPException(
-            status_code=502,
-            detail=(
-                "La réponse du modèle local est invalide "
-                "ou incomplète. "
-                f"{erreur}"
-            ),
-        )
+    
 
     return HTTPException(
         status_code=500,
@@ -409,20 +389,7 @@ async def traiter_un_fichier(
         # TEXTE TROP LONG
         # ====================================================
 
-        if (
-            len(texte)
-            > MAX_CARACTERES_RAPPORT
-        ):
-
-            raise HTTPException(
-                status_code=413,
-                detail=(
-                    f"{fichier.filename} dépasse "
-                    "la limite supportée de "
-                    f"{MAX_CARACTERES_RAPPORT} "
-                    "caractères."
-                ),
-            )
+        
 
 
         # ====================================================
