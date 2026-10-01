@@ -7,13 +7,17 @@ const API_URL = "http://127.0.0.1:8000";
 
 const pages = document.querySelectorAll(".page");
 const navItems = document.querySelectorAll(".nav-item");
+
 const fileInput = document.getElementById("fileInput");
 const uploadZone = document.getElementById("uploadZone");
 const filePreviewList = document.getElementById("filePreviewList");
+
 const analyseBtn = document.getElementById("analyseBtn");
 const loading = document.getElementById("loading");
 const errorMessage = document.getElementById("errorMessage");
+
 const resultContent = document.getElementById("resultContent");
+
 const historyRows = document.getElementById("historyRows");
 const recentAnalyses = document.getElementById("recentAnalyses");
 
@@ -64,47 +68,75 @@ function showPage(pageName) {
 }
 
 
-// sidebar buttons
+// ============================================================
+// SIDEBAR
+// ============================================================
 
 navItems.forEach(item => {
 
     item.addEventListener("click", () => {
+
         showPage(item.dataset.page);
+
     });
 
 });
 
 
-// home button
+// ============================================================
+// HOME -> ANALYSE
+// ============================================================
 
-document
-    .getElementById("goAnalyse")
-    .addEventListener("click", () => {
+const goAnalyseButton = document.getElementById("goAnalyse");
+
+if (goAnalyseButton) {
+
+    goAnalyseButton.addEventListener("click", () => {
+
         showPage("analyse");
+
     });
 
+}
 
-// history button
 
-document
-    .querySelector(".text-button")
-    .addEventListener("click", () => {
+// ============================================================
+// HISTORY BUTTON
+// ============================================================
+
+const historyButton = document.querySelector(".text-button");
+
+if (historyButton) {
+
+    historyButton.addEventListener("click", () => {
+
         showPage("historique");
+
     });
+
+}
 
 
 // ============================================================
 // FILE SELECTION
 // ============================================================
 
-fileInput.addEventListener("change", () => {
+if (fileInput) {
 
-    addFiles(fileInput.files);
+    fileInput.addEventListener("change", () => {
 
-    fileInput.value = "";
+        addFiles(fileInput.files);
 
-});
+        fileInput.value = "";
 
+    });
+
+}
+
+
+// ============================================================
+// ADD FILES
+// ============================================================
 
 function addFiles(fileList) {
 
@@ -114,40 +146,70 @@ function addFiles(fileList) {
 
     Array.from(fileList).forEach(file => {
 
+        // ----------------------------------------------------
+        // EMPTY FILE
+        // ----------------------------------------------------
+
         if (file.size === 0) {
 
-            showError(`Le fichier "${file.name}" est vide.`);
-
-            return;
-        }
-
-        if (file.size > maxSize) {
-
-            showError(`"${file.name}" dépasse la limite de 20 Mo.`);
-
-            return;
-        }
-
-        const point = file.name.lastIndexOf(".");
-        const extension = point >= 0
-            ? file.name.slice(point).toLowerCase()
-            : "";
-
-        if (![".pdf", ".docx", ".txt"].includes(extension)) {
-
             showError(
-                `"${file.name}" n'est pas un format supporté. Formats acceptés : PDF, DOCX, TXT.`
+                `Le fichier "${file.name}" est vide.`
             );
 
             return;
         }
 
+
+        // ----------------------------------------------------
+        // SIZE
+        // ----------------------------------------------------
+
+        if (file.size > maxSize) {
+
+            showError(
+                `"${file.name}" dépasse la limite de 20 Mo.`
+            );
+
+            return;
+        }
+
+
+        // ----------------------------------------------------
+        // EXTENSION
+        // ----------------------------------------------------
+
+        const point = file.name.lastIndexOf(".");
+
+        const extension =
+            point >= 0
+                ? file.name.slice(point).toLowerCase()
+                : "";
+
+        if (![".pdf", ".docx", ".txt"].includes(extension)) {
+
+            showError(
+                `"${file.name}" n'est pas un format supporté. ` +
+                `Formats acceptés : PDF, DOCX, TXT.`
+            );
+
+            return;
+        }
+
+
+        // ----------------------------------------------------
+        // DUPLICATE IN CURRENT SELECTION
+        // ----------------------------------------------------
+
         const dejaPresent = selectedFiles.some(
-            f => f.name === file.name && f.size === file.size
+            existingFile =>
+                existingFile.name === file.name &&
+                existingFile.size === file.size
         );
 
         if (!dejaPresent) {
+
             selectedFiles.push(file);
+
         }
 
     });
@@ -162,6 +224,10 @@ function addFiles(fileList) {
 
 function renderFileList() {
 
+    if (!filePreviewList) {
+        return;
+    }
+
     filePreviewList.innerHTML = "";
 
     selectedFiles.forEach((file, index) => {
@@ -175,38 +241,59 @@ function renderFileList() {
             <div class="file-preview-left">
 
                 <div class="file-preview-icon">
-                    <img src="assets/icons/nice.png" alt="">
+
+                    <img
+                        src="assets/icons/nice.png"
+                        alt=""
+                    >
+
                 </div>
 
                 <div>
-                    <strong>${escapeHtml(file.name)}</strong>
-                    <span>${formatSize(file.size)}</span>
+
+                    <strong>
+                        ${escapeHtml(file.name)}
+                    </strong>
+
+                    <span>
+                        ${formatSize(file.size)}
+                    </span>
+
                 </div>
 
             </div>
+
 
             <button
                 class="remove-file"
                 type="button"
                 data-index="${index}"
             >
-                <img src="assets/icons/x.png" alt="Supprimer">
+
+                <img
+                    src="assets/icons/x.png"
+                    alt="Supprimer"
+                >
+
             </button>
+
         `;
 
         filePreviewList.appendChild(item);
 
     });
 
+
     filePreviewList
         .querySelectorAll(".remove-file")
-        .forEach(btn => {
+        .forEach(button => {
 
-            btn.addEventListener("click", () => {
+            button.addEventListener("click", () => {
 
-                const idx = Number(btn.dataset.index);
+                const index =
+                    Number(button.dataset.index);
 
-                selectedFiles.splice(idx, 1);
+                selectedFiles.splice(index, 1);
 
                 renderFileList();
 
@@ -214,7 +301,13 @@ function renderFileList() {
 
         });
 
-    analyseBtn.disabled = selectedFiles.length === 0;
+
+    if (analyseBtn) {
+
+        analyseBtn.disabled =
+            selectedFiles.length === 0;
+
+    }
 }
 
 
@@ -222,37 +315,42 @@ function renderFileList() {
 // DRAG & DROP
 // ============================================================
 
-uploadZone.addEventListener("dragover", event => {
+if (uploadZone) {
 
-    event.preventDefault();
+    uploadZone.addEventListener("dragover", event => {
 
-    uploadZone.classList.add("dragover");
+        event.preventDefault();
 
-});
+        uploadZone.classList.add("dragover");
 
-
-uploadZone.addEventListener("dragleave", () => {
-
-    uploadZone.classList.remove("dragover");
-
-});
+    });
 
 
-uploadZone.addEventListener("drop", event => {
+    uploadZone.addEventListener("dragleave", () => {
 
-    event.preventDefault();
+        uploadZone.classList.remove("dragover");
 
-    uploadZone.classList.remove("dragover");
+    });
 
-    const files = event.dataTransfer.files;
 
-    if (!files.length) {
-        return;
-    }
+    uploadZone.addEventListener("drop", event => {
 
-    addFiles(files);
+        event.preventDefault();
 
-});
+        uploadZone.classList.remove("dragover");
+
+        const files =
+            event.dataTransfer.files;
+
+        if (!files.length) {
+            return;
+        }
+
+        addFiles(files);
+
+    });
+
+}
 
 
 // ============================================================
@@ -264,45 +362,80 @@ function resetFile() {
     selectedFiles = [];
 
     renderFileList();
+
 }
 
 
 // ============================================================
-// ANALYSE
+// ANALYSE BUTTON
 // ============================================================
 
-analyseBtn.addEventListener("click", analyseDocument);
+if (analyseBtn) {
 
+    analyseBtn.addEventListener(
+        "click",
+        analyseDocument
+    );
+
+}
+
+
+// ============================================================
+// ANALYSE DOCUMENT
+// ============================================================
 
 async function analyseDocument() {
 
     if (!selectedFiles.length) {
 
-        showError("Veuillez sélectionner au moins un fichier.");
+        showError(
+            "Veuillez sélectionner au moins un fichier."
+        );
 
         return;
     }
 
+
     const formData = new FormData();
 
+
     selectedFiles.forEach(file => {
-        formData.append("fichiers", file);
+
+        formData.append(
+            "fichiers",
+            file
+        );
+
     });
 
-    // interface
+
+    // --------------------------------------------------------
+    // UI
+    // --------------------------------------------------------
 
     analyseBtn.disabled = true;
-    analyseBtn.innerHTML = "Analyse en cours...";
-    loading.classList.add("show");
+
+    analyseBtn.innerHTML =
+        "Analyse en cours...";
+
+    if (loading) {
+        loading.classList.add("show");
+    }
 
     hideError();
+
 
     try {
 
         console.log(
-            "Envoi des fichiers :",
-            selectedFiles.map(f => f.name)
+            ">>> Envoi des fichiers :",
+            selectedFiles.map(file => file.name)
         );
+
+
+        // ----------------------------------------------------
+        // API
+        // ----------------------------------------------------
 
         const response = await fetch(
             `${API_URL}/api/analyse`,
@@ -312,218 +445,425 @@ async function analyseDocument() {
             }
         );
 
-        let data = {};
+
+        // ----------------------------------------------------
+        // JSON
+        // ----------------------------------------------------
+
+        let data;
 
         try {
+
             data = await response.json();
-        } catch (parseError) {
+
+        } catch (error) {
+
             throw new Error(
-                "Impossible de contacter le serveur ou de lire la réponse."
+                "Le serveur a retourné une réponse invalide."
             );
+
         }
 
-        console.log("Réponse API :", data);
+
+        console.log(
+            ">>> Réponse API :",
+            data
+        );
+
+
+        // ----------------------------------------------------
+        // ERROR
+        // ----------------------------------------------------
 
         if (!response.ok) {
 
             throw new Error(
-                extraireMessageErreur(data) || "Erreur pendant l'analyse."
+                extraireMessageErreur(data) ||
+                "Erreur pendant l'analyse."
             );
 
         }
 
+
+        // ----------------------------------------------------
+        // CHECK RESPONSE
+        // ----------------------------------------------------
+
+        if (!data) {
+
+            throw new Error(
+                "Aucune réponse reçue du serveur."
+            );
+
+        }
+
+
+        if (!data.synthese) {
+
+            console.warn(
+                "La réponse ne contient pas de synthèse.",
+                data
+            );
+
+        }
+
+
+        // ----------------------------------------------------
+        // SAVE RESPONSE
+        // ----------------------------------------------------
+
         lastResponse = data;
+
+
+        // ----------------------------------------------------
+        // DISPLAY
+        // ----------------------------------------------------
 
         displayResult(data);
 
+
+        // ----------------------------------------------------
+        // RESULT PAGE
+        // ----------------------------------------------------
+
         showPage("result");
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "!!! ERREUR FRONTEND !!!",
+            error
+        );
 
         showError(
-            error.message || "Impossible de contacter le serveur."
+            error.message ||
+            "Impossible de contacter le serveur."
         );
 
     } finally {
 
-        loading.classList.remove("show");
+        if (loading) {
+            loading.classList.remove("show");
+        }
 
-        analyseBtn.disabled = false;
+        analyseBtn.disabled =
+            selectedFiles.length === 0;
 
         analyseBtn.innerHTML = `
             Analyser maintenant
 
-            <img src="assets/icons/goto.png" alt="">
+            <img
+                src="assets/icons/goto.png"
+                alt=""
+            >
         `;
 
     }
 
-}
-
-
-// ============================================================
-// PRIORITY CLASS
-// ============================================================
-
-function getPriorityClass(priorite) {
-
-    const p = (priorite || "").toLowerCase();
-
-    if (
-        p.includes("élev") ||
-        p.includes("elev") ||
-        p.includes("haute") ||
-        p.includes("high")
-    ) {
-        return "priority-high";
-    }
-
-    if (
-        p.includes("faible") ||
-        p.includes("basse") ||
-        p.includes("low")
-    ) {
-        return "priority-low";
-    }
-
-    return "priority-medium";
-}
-
-
-function extraireMessageErreur(data) {
-
-    const detail = data && data.detail;
-
-    if (!detail) {
-        return "";
-    }
-
-    if (typeof detail === "string") {
-        return detail;
-    }
-
-    if (Array.isArray(detail)) {
-        return detail
-            .map(item => item.msg || item.detail || "")
-            .filter(Boolean)
-            .join(" ");
-    }
-
-    return String(detail);
 }
 
 
 // ============================================================
 // DISPLAY RESULT
-// (uniquement synthèse + recommandations)
+//
+// IMPORTANT:
+// L'interface affiche UNIQUEMENT:
+//
+// 01 - Synthèse des interventions réalisées
+// 02 - Recommandations
+//
+// Elle n'affiche pas les analyses détaillées des équipements.
 // ============================================================
 
 function displayResult(data) {
 
+    if (!resultContent) {
+        return;
+    }
+
     resultContent.innerHTML = "";
 
-    const synthese = data.synthese || {};
+
+    console.log(
+        ">>> AFFICHAGE RESULTAT"
+    );
+
+    console.log(
+        ">>> Synthèse :",
+        data.synthese
+    );
+
+
+    const synthese =
+        data.synthese || {};
+
+
+
+    // ========================================================
+    // 01 - SYNTHESE DES INTERVENTIONS REALISEES
+    // ========================================================
 
     const syntheses =
-        Array.isArray(synthese.synthese_interventions)
+        Array.isArray(
+            synthese.synthese_interventions
+        )
             ? synthese.synthese_interventions
             : [];
 
+
     let syntheseHTML = "";
+
 
     if (!syntheses.length) {
 
-        syntheseHTML = "<p>Aucune synthèse n'a pu être produite.</p>";
+        syntheseHTML = `
+            <p class="empty-result">
+                Aucune synthèse des interventions réalisées
+                n'a été produite.
+            </p>
+        `;
 
     } else {
 
         syntheses.forEach(item => {
 
+            let equipement = "";
+            let resume = "";
+
+
+            // ------------------------------------------------
+            // CAS 1 :
+            // { equipement, resume }
+            // ------------------------------------------------
+
+            if (
+                typeof item === "object" &&
+                item !== null
+            ) {
+
+                equipement =
+                    item.equipement ||
+                    item.nom ||
+                    "Équipement";
+
+                resume =
+                    item.resume ||
+                    item.synthese ||
+                    item.description ||
+                    item.intervention ||
+                    "";
+
+            }
+
+
+            // ------------------------------------------------
+            // CAS 2 :
+            // simple string
+            // ------------------------------------------------
+
+            else {
+
+                resume = String(item);
+
+            }
+
+
             syntheseHTML += `
+
                 <div class="synthesis-equipment">
-                    <h3>${escapeHtml(item.equipement || "")}</h3>
-                    <p>${escapeHtml(item.resume || "")}</p>
+
+                    ${
+                        equipement
+                            ? `
+                                <h3>
+                                    ${escapeHtml(
+                                        equipement
+                                    )}
+                                </h3>
+                            `
+                            : ""
+                    }
+
+                    <p>
+                        ${escapeHtml(
+                            resume
+                        )}
+                    </p>
+
                 </div>
+
             `;
 
         });
 
     }
+
 
     addResultItem(
         resultContent,
         "01",
-        "Synthèse de l'intervention",
+        "Synthèse des interventions réalisées",
         syntheseHTML
     );
 
+
+
+    // ========================================================
+    // 02 - RECOMMANDATIONS
+    // ========================================================
+
     const recommandations =
-        Array.isArray(synthese.recommandations)
+        Array.isArray(
+            synthese.recommandations
+        )
             ? synthese.recommandations
             : [];
 
+
     let recommendationsHTML = "";
 
-    recommandations.forEach(groupe => {
 
-        const actions = Array.isArray(groupe.actions)
-            ? groupe.actions
-            : [];
+    if (!recommandations.length) {
 
-        if (!actions.length) {
-            return;
-        }
-
-        recommendationsHTML += `
-            <div class="recommendation-group">
-
-                <h3 class="recommendation-equipment">
-                    ${escapeHtml(groupe.equipement || "")}
-                </h3>
-
-                <div class="recommendation-actions">
+        recommendationsHTML = `
+            <p class="empty-result">
+                Aucune recommandation future
+                n'a été générée.
+            </p>
         `;
 
-        actions.forEach(action => {
+    } else {
 
-            const priorityClass = getPriorityClass(action.priorite);
 
-            recommendationsHTML += `
+        recommandations.forEach(
+            recommandation => {
 
-                <div class="priority-box">
 
-                    <span class="priority-label ${priorityClass}">
-                        ${escapeHtml(action.priorite || "moyenne")}
-                    </span>
+                // =================================================
+                // FORMAT ACTUEL DE TON AGENT :
+                //
+                // {
+                //   equipement: "...",
+                //   action: "...",
+                //   priorite: "moyenne"
+                // }
+                // =================================================
 
-                    <div class="priority-action">
-                        <strong>Action recommandée</strong>
-                        <p>${escapeHtml(action.action || "")}</p>
-                    </div>
+                if (
+                    typeof recommandation === "object" &&
+                    recommandation !== null
+                ) {
 
-                    <div class="priority-justification">
-                        <strong>Justification</strong>
-                        <p>${escapeHtml(action.justification || "")}</p>
-                    </div>
+                    const equipement =
+                        recommandation.equipement ||
+                        "Équipement";
 
-                </div>
+                    const action =
+                        recommandation.action ||
+                        "";
 
-            `;
+                    const priorite =
+                        recommandation.priorite ||
+                        "moyenne";
 
-        });
+                    const justification =
+                        recommandation.justification ||
+                        "";
 
-        recommendationsHTML += `
-                </div>
-            </div>
-        `;
 
-    });
+                    const priorityClass =
+                        getPriorityClass(
+                            priorite
+                        );
 
-    if (!recommendationsHTML.trim()) {
-        recommendationsHTML = "<p>Aucune recommandation future n'a été générée.</p>";
+
+                    recommendationsHTML += `
+
+                        <div
+                            class="recommendation-group"
+                        >
+
+                            <h3
+                                class="recommendation-equipment"
+                            >
+                                ${escapeHtml(
+                                    equipement
+                                )}
+                            </h3>
+
+
+                            <div
+                                class="recommendation-actions"
+                            >
+
+                                <div
+                                    class="priority-box"
+                                >
+
+                                    <span
+                                        class="priority-label ${priorityClass}"
+                                    >
+                                        ${escapeHtml(
+                                            priorite
+                                        )}
+                                    </span>
+
+
+                                    <div
+                                        class="priority-action"
+                                    >
+
+                                        <strong>
+                                            Action recommandée
+                                        </strong>
+
+                                        <p>
+                                            ${escapeHtml(
+                                                action
+                                            )}
+                                        </p>
+
+                                    </div>
+
+
+                                    ${
+                                        justification
+                                            ? `
+                                                <div
+                                                    class="priority-justification"
+                                                >
+
+                                                    <strong>
+                                                        Justification
+                                                    </strong>
+
+                                                    <p>
+                                                        ${escapeHtml(
+                                                            justification
+                                                        )}
+                                                    </p>
+
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+
+            }
+        );
+
     }
+
 
     addResultItem(
         resultContent,
@@ -531,11 +871,16 @@ function displayResult(data) {
         "Recommandations",
         `
             <div class="recommendations-container">
+
                 ${recommendationsHTML}
 
                 <div class="recommendation-note">
-                    Les recommandations doivent être validées par un responsable de maintenance.
+                    Les recommandations sont des actions
+                    futures proposées par SYNIA.
+                    Elles doivent être validées par un
+                    responsable de maintenance.
                 </div>
+
             </div>
         `
     );
@@ -547,11 +892,19 @@ function displayResult(data) {
 // RESULT ITEM
 // ============================================================
 
-function addResultItem(container, index, label, value) {
+function addResultItem(
+    container,
+    index,
+    label,
+    value
+) {
 
-    const item = document.createElement("div");
+    const item =
+        document.createElement("div");
 
-    item.className = "result-item";
+    item.className =
+        "result-item";
+
 
     item.innerHTML = `
 
@@ -569,13 +922,97 @@ function addResultItem(container, index, label, value) {
 
     `;
 
+
     container.appendChild(item);
 
 }
 
 
 // ============================================================
-// CHARGER L'HISTORIQUE (PAGE HISTORIQUE)
+// PRIORITY CLASS
+// ============================================================
+
+function getPriorityClass(priorite) {
+
+    const p =
+        String(priorite || "")
+            .toLowerCase();
+
+
+    if (
+        p.includes("élev") ||
+        p.includes("elev") ||
+        p.includes("haute") ||
+        p.includes("high")
+    ) {
+
+        return "priority-high";
+
+    }
+
+
+    if (
+        p.includes("faible") ||
+        p.includes("basse") ||
+        p.includes("low")
+    ) {
+
+        return "priority-low";
+
+    }
+
+
+    return "priority-medium";
+
+}
+
+
+// ============================================================
+// ERROR MESSAGE
+// ============================================================
+
+function extraireMessageErreur(data) {
+
+    if (!data) {
+        return "";
+    }
+
+
+    const detail =
+        data.detail;
+
+
+    if (!detail) {
+        return "";
+    }
+
+
+    if (typeof detail === "string") {
+        return detail;
+    }
+
+
+    if (Array.isArray(detail)) {
+
+        return detail
+            .map(item =>
+                item.msg ||
+                item.detail ||
+                ""
+            )
+            .filter(Boolean)
+            .join(" ");
+
+    }
+
+
+    return String(detail);
+
+}
+
+
+// ============================================================
+// HISTORY
 // ============================================================
 
 async function chargerHistorique() {
@@ -584,61 +1021,106 @@ async function chargerHistorique() {
         return;
     }
 
-    historyRows.innerHTML =
-        `<div class="history-row"><span>Chargement...</span></div>`;
+
+    historyRows.innerHTML = `
+        <div class="history-row">
+            <span>Chargement...</span>
+        </div>
+    `;
+
 
     try {
 
-        const response = await fetch(`${API_URL}/api/historique`);
+        const response =
+            await fetch(
+                `${API_URL}/api/historique`
+            );
 
-        const data = await response.json();
 
-        const items = data.historique || [];
+        const data =
+            await response.json();
+
+
+        const items =
+            data.historique || [];
+
 
         if (!items.length) {
 
-            historyRows.innerHTML =
-                `<div class="history-row"><span>Aucune analyse pour le moment.</span></div>`;
+            historyRows.innerHTML = `
+                <div class="history-row">
+                    <span>
+                        Aucune analyse pour le moment.
+                    </span>
+                </div>
+            `;
 
             return;
         }
 
-        historyRows.innerHTML = items
-            .map(item => `
+
+        historyRows.innerHTML =
+            items.map(item => `
+
                 <div class="history-row">
 
                     <div class="history-document">
 
-                        <img src="assets/icons/nice.png" alt="">
+                        <img
+                            src="assets/icons/nice.png"
+                            alt=""
+                        >
 
-                        <span>${escapeHtml(item.fichier)}</span>
+                        <span>
+                            ${escapeHtml(
+                                item.fichier
+                            )}
+                        </span>
 
                     </div>
 
+
                     <span>
-                        ${escapeHtml(item.analyse_le || item.date || "--")}
+                        ${escapeHtml(
+                            item.analyse_le ||
+                            item.date ||
+                            "--"
+                        )}
                     </span>
+
 
                     <span class="history-success">
                         Analysé
                     </span>
 
                 </div>
-            `)
-            .join("");
+
+            `).join("");
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erreur historique :",
+            error
+        );
 
-        historyRows.innerHTML =
-            `<div class="history-row"><span>Impossible de charger l'historique.</span></div>`;
+
+        historyRows.innerHTML = `
+            <div class="history-row">
+                <span>
+                    Impossible de charger l'historique.
+                </span>
+            </div>
+        `;
+
     }
+
 }
 
 
 // ============================================================
-// CHARGER LES DERNIÈRES ANALYSES (PAGE ACCUEIL)
+// RECENT ANALYSES
 // ============================================================
 
 async function chargerDernieresAnalyses() {
@@ -647,65 +1129,111 @@ async function chargerDernieresAnalyses() {
         return;
     }
 
+
     try {
 
-        const response = await fetch(`${API_URL}/api/historique`);
+        const response =
+            await fetch(
+                `${API_URL}/api/historique`
+            );
 
-        const data = await response.json();
 
-        const items = (data.historique || []).slice(0, 3);
+        const data =
+            await response.json();
+
+
+        const items =
+            (data.historique || [])
+                .slice(0, 3);
+
 
         if (!items.length) {
 
             recentAnalyses.innerHTML = `
                 <div class="recent-item">
+
                     <div class="recent-main">
-                        <span>Aucune analyse pour le moment.</span>
+
+                        <span>
+                            Aucune analyse pour le moment.
+                        </span>
+
                     </div>
+
                 </div>
             `;
 
             return;
         }
 
-        recentAnalyses.innerHTML = items
-            .map(item => `
+
+        recentAnalyses.innerHTML =
+            items.map(item => `
+
                 <div class="recent-item">
 
                     <div class="document-mini-icon">
-                        <img src="assets/icons/nice.png" alt="">
+
+                        <img
+                            src="assets/icons/nice.png"
+                            alt=""
+                        >
+
                     </div>
+
 
                     <div class="recent-main">
 
-                        <strong>${escapeHtml(item.fichier)}</strong>
+                        <strong>
+                            ${escapeHtml(
+                                item.fichier
+                            )}
+                        </strong>
 
                         <span>
-                            ${escapeHtml(item.analyse_le || item.date || "--")}
+                            ${escapeHtml(
+                                item.analyse_le ||
+                                item.date ||
+                                "--"
+                            )}
                         </span>
 
                     </div>
+
 
                     <span class="recent-status">
                         Terminé
                     </span>
 
                 </div>
-            `)
-            .join("");
+
+            `).join("");
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erreur dernières analyses :",
+            error
+        );
+
 
         recentAnalyses.innerHTML = `
             <div class="recent-item">
+
                 <div class="recent-main">
-                    <span>Impossible de charger les analyses.</span>
+
+                    <span>
+                        Impossible de charger les analyses.
+                    </span>
+
                 </div>
+
             </div>
         `;
+
     }
+
 }
 
 
@@ -713,88 +1241,171 @@ async function chargerDernieresAnalyses() {
 // EXPORT JSON
 // ============================================================
 
-document
-    .getElementById("exportJsonBtn")
-    .addEventListener("click", () => {
+const exportJsonBtn =
+    document.getElementById(
+        "exportJsonBtn"
+    );
 
-        if (!lastResponse) {
 
-            showError("Aucune analyse disponible.");
+if (exportJsonBtn) {
 
-            return;
+    exportJsonBtn.addEventListener(
+        "click",
+        () => {
+
+            if (!lastResponse) {
+
+                showError(
+                    "Aucune analyse disponible."
+                );
+
+                return;
+            }
+
+
+            const blob =
+                new Blob(
+                    [
+                        JSON.stringify(
+                            lastResponse,
+                            null,
+                            2
+                        )
+                    ],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+            link.download =
+                "synia_analyse.json";
+
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+
+            URL.revokeObjectURL(url);
+
         }
+    );
 
-        const blob = new Blob(
-            [JSON.stringify(lastResponse, null, 2)],
-            { type: "application/json" }
-        );
-
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-
-        link.href = url;
-
-        link.download = "synia_analyse.json";
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        URL.revokeObjectURL(url);
-
-    });
+}
 
 
 // ============================================================
 // DOWNLOAD
 // ============================================================
 
-document
-    .getElementById("downloadBtn")
-    .addEventListener("click", () => {
+const downloadBtn =
+    document.getElementById(
+        "downloadBtn"
+    );
 
-        window.print();
 
-    });
+if (downloadBtn) {
+
+    downloadBtn.addEventListener(
+        "click",
+        () => {
+
+            window.print();
+
+        }
+    );
+
+}
 
 
 // ============================================================
 // NEW ANALYSIS
 // ============================================================
 
-document
-    .getElementById("newAnalysisBtn")
-    .addEventListener("click", () => {
+const newAnalysisBtn =
+    document.getElementById(
+        "newAnalysisBtn"
+    );
 
-        resetFile();
 
-        resultContent.innerHTML = "";
+if (newAnalysisBtn) {
 
-        showPage("analyse");
+    newAnalysisBtn.addEventListener(
+        "click",
+        () => {
 
-    });
+            resetFile();
+
+
+            if (resultContent) {
+                resultContent.innerHTML = "";
+            }
+
+
+            showPage("analyse");
+
+        }
+    );
+
+}
 
 
 // ============================================================
-// ERROR
+// ERROR DISPLAY
 // ============================================================
 
 function showError(message) {
 
-    const span = errorMessage.querySelector("span");
+    if (!errorMessage) {
+        return;
+    }
 
-    span.textContent = message;
 
-    errorMessage.classList.add("show");
+    const span =
+        errorMessage.querySelector(
+            "span"
+        );
+
+
+    if (span) {
+
+        span.textContent =
+            message;
+
+    }
+
+
+    errorMessage.classList.add(
+        "show"
+    );
+
 }
 
 
 function hideError() {
 
-    errorMessage.classList.remove("show");
+    if (!errorMessage) {
+        return;
+    }
+
+
+    errorMessage.classList.remove(
+        "show"
+    );
 
 }
 
@@ -806,14 +1417,26 @@ function hideError() {
 function formatSize(bytes) {
 
     if (bytes < 1024) {
+
         return `${bytes} octets`;
+
     }
+
 
     if (bytes < 1024 * 1024) {
-        return `${(bytes / 1024).toFixed(1)} KB`;
+
+        return `${(
+            bytes / 1024
+        ).toFixed(1)} KB`;
+
     }
 
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
+
 }
 
 
@@ -823,21 +1446,43 @@ function formatSize(bytes) {
 
 function escapeHtml(value) {
 
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
         return "";
+
     }
 
+
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
 }
 
 
 // ============================================================
-// CHARGEMENT INITIAL
+// INITIAL LOAD
 // ============================================================
 
 chargerDernieresAnalyses();

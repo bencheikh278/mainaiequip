@@ -36,8 +36,11 @@ import bdd
 
 app = FastAPI(
     title="SYNIA API",
-    description="API de SYNIA pour l'analyse intelligente des documents de maintenance",
-    version="1.0.0"
+    description=(
+        "API de SYNIA pour l'analyse intelligente "
+        "des documents de maintenance"
+    ),
+    version="1.0.0",
 )
 
 
@@ -71,60 +74,64 @@ def message_erreur(erreur):
     if isinstance(erreur, FormatNonSupporte):
         return HTTPException(
             status_code=400,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, FichierVide):
         return HTTPException(
             status_code=400,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, FichierIllisible):
         return HTTPException(
             status_code=400,
-            detail=str(erreur)
-            or "Le document est illisible."
+            detail=(
+                str(erreur)
+                or "Le document est illisible."
+            ),
         )
 
     if isinstance(erreur, ExtractionError):
         return HTTPException(
             status_code=400,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, RapportVide):
         return HTTPException(
             status_code=400,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, DocumentTropLong):
         return HTTPException(
             status_code=413,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, VLLMIndisponible):
         return HTTPException(
             status_code=503,
-            detail=str(erreur)
+            detail=str(erreur),
         )
 
     if isinstance(erreur, JSONInvalide):
         return HTTPException(
             status_code=502,
             detail=(
-                "La réponse du modèle local est invalide ou incomplète. "
+                "La réponse du modèle local est invalide "
+                "ou incomplète. "
                 f"{erreur}"
-            )
+            ),
         )
 
     return HTTPException(
         status_code=500,
         detail=(
-            f"Erreur interne : {type(erreur).__name__}: {str(erreur)}"
-        )
+            f"Erreur interne : "
+            f"{type(erreur).__name__}: {str(erreur)}"
+        ),
     )
 
 
@@ -137,7 +144,7 @@ def home():
 
     return {
         "message": "SYNIA API is running",
-        "status": "ok"
+        "status": "ok",
     }
 
 
@@ -149,8 +156,19 @@ def home():
 def health():
 
     return {
-        "status": "ok"
+        "status": "ok",
     }
+
+
+# ============================================================
+# CALCUL HASH
+# ============================================================
+
+def calculer_hash(texte):
+
+    return hashlib.sha256(
+        texte.encode("utf-8")
+    ).hexdigest()
 
 
 # ============================================================
@@ -168,6 +186,20 @@ def obtenir_historique():
             connexion
         )
 
+    except Exception as erreur:
+
+        print()
+        print("!!! ERREUR HISTORIQUE !!!")
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Impossible de récupérer "
+                "l'historique."
+            ),
+        )
+
     finally:
 
         connexion.close()
@@ -177,14 +209,22 @@ def obtenir_historique():
     for rapport in historique:
 
         resume.append({
-            "fichier": rapport.get("fichier"),
-            "date": rapport.get("date"),
-            "analyse_le": rapport.get("analyse_le"),
+
+            "fichier":
+                rapport.get("fichier"),
+
+            "date":
+                rapport.get("date"),
+
+            "analyse_le":
+                rapport.get("analyse_le"),
+
         })
 
     resume.sort(
-        key=lambda r: r.get("analyse_le") or "",
-        reverse=True
+        key=lambda r:
+            r.get("analyse_le") or "",
+        reverse=True,
     )
 
     return {
@@ -193,58 +233,62 @@ def obtenir_historique():
 
 
 # ============================================================
-# HASH
-# ============================================================
-
-def calculer_hash(texte):
-
-    return hashlib.sha256(
-        texte.encode("utf-8")
-    ).hexdigest()
-
-
-# ============================================================
 # TRAITER UN FICHIER
 # ============================================================
 
 async def traiter_un_fichier(
-    fichier: UploadFile
+    fichier: UploadFile,
 ):
+
+    # ========================================================
+    # NOM
+    # ========================================================
 
     if not fichier.filename:
 
         raise HTTPException(
             status_code=400,
-            detail="Un fichier reçu n'a pas de nom."
+            detail="Un fichier reçu n'a pas de nom.",
         )
+
 
     print()
     print("=" * 70)
-    print(f" FICHIER REÇU : {fichier.filename}")
+    print(
+        f" FICHIER REÇU : {fichier.filename}"
+    )
     print("=" * 70)
 
+
     # ========================================================
-    # LECTURE DU FICHIER
+    # LECTURE
     # ========================================================
 
     contenu = await fichier.read()
+
 
     if not contenu:
 
         raise HTTPException(
             status_code=400,
-            detail=f"Le fichier {fichier.filename} est vide."
+            detail=(
+                f"Le fichier {fichier.filename} "
+                "est vide."
+            ),
         )
 
+
     print(
-        f" Taille : {len(contenu)} octets"
+        f">>> Taille : {len(contenu)} octets"
     )
 
+
     # ========================================================
-    # LIMITE TAILLE
+    # LIMITE 20 MO
     # ========================================================
 
     taille_max = 20 * 1024 * 1024
+
 
     if len(contenu) > taille_max:
 
@@ -253,8 +297,9 @@ async def traiter_un_fichier(
             detail=(
                 f"{fichier.filename} dépasse "
                 "la limite de 20 Mo."
-            )
+            ),
         )
+
 
     # ========================================================
     # EXTENSION
@@ -264,6 +309,7 @@ async def traiter_un_fichier(
         fichier.filename
     )[1].lower()
 
+
     if extension not in EXTENSIONS_ACCEPTEES:
 
         raise HTTPException(
@@ -272,10 +318,12 @@ async def traiter_un_fichier(
                 f"Format non supporté pour "
                 f"{fichier.filename}. "
                 "Formats acceptés : PDF, DOCX, TXT."
-            )
+            ),
         )
 
+
     chemin_temp = None
+
 
     try:
 
@@ -285,19 +333,21 @@ async def traiter_un_fichier(
 
         with tempfile.NamedTemporaryFile(
             delete=False,
-            suffix=extension
+            suffix=extension,
         ) as fichier_temp:
 
             fichier_temp.write(contenu)
 
             chemin_temp = fichier_temp.name
 
+
         # ====================================================
-        # EXTRACTION
+        # EXTRACTION DU TEXTE
         # ====================================================
 
         print()
         print(">>> EXTRACTION DU TEXTE...")
+
 
         try:
 
@@ -308,22 +358,40 @@ async def traiter_un_fichier(
         except Exception as erreur:
 
             print()
-            print("!!! ERREUR EXTRACTION !!!")
             print(
-                type(erreur).__name__,
-                str(erreur)
+                "!!! ERREUR EXTRACTION !!!"
             )
+
+            print(
+                "TYPE :",
+                type(erreur).__name__,
+            )
+
+            print(
+                "MESSAGE :",
+                str(erreur),
+            )
+
             traceback.print_exc()
+
 
             raise message_erreur(
                 erreur
             )
 
+
         texte = texte.strip()
 
+
         print(
-            f">>> Texte extrait : {len(texte)} caractères"
+            f">>> Texte extrait : "
+            f"{len(texte)} caractères"
         )
+
+
+        # ====================================================
+        # TEXTE TROP COURT
+        # ====================================================
 
         if len(texte) < 30:
 
@@ -331,35 +399,45 @@ async def traiter_un_fichier(
                 status_code=400,
                 detail=(
                     f"{fichier.filename} "
-                    "ne contient pas assez de texte exploitable."
-                )
+                    "ne contient pas assez de "
+                    "texte exploitable."
+                ),
             )
 
+
         # ====================================================
-        # LIMITE TEXTE
+        # TEXTE TROP LONG
         # ====================================================
 
-        if len(texte) > MAX_CARACTERES_RAPPORT:
+        if (
+            len(texte)
+            > MAX_CARACTERES_RAPPORT
+        ):
 
             raise HTTPException(
                 status_code=413,
                 detail=(
-                    f"{fichier.filename} dépasse la limite "
-                    f"supportée de {MAX_CARACTERES_RAPPORT} caractères."
-                )
+                    f"{fichier.filename} dépasse "
+                    "la limite supportée de "
+                    f"{MAX_CARACTERES_RAPPORT} "
+                    "caractères."
+                ),
             )
 
+
         # ====================================================
-        # HASH
+        # HASH DU CONTENU
         # ====================================================
 
         hash_contenu = calculer_hash(
             texte
         )
 
+
         print(
             f">>> Hash : {hash_contenu}"
         )
+
 
         # ====================================================
         # SQLITE
@@ -367,14 +445,20 @@ async def traiter_un_fichier(
 
         connexion = bdd.connecter()
 
+
         try:
+
+            # =================================================
+            # CHERCHER SI LE RAPPORT EXISTE
+            # =================================================
 
             rapport_existant = (
                 bdd.recuperer_rapport_par_hash(
                     connexion,
-                    hash_contenu
+                    hash_contenu,
                 )
             )
+
 
             # =================================================
             # RAPPORT DÉJÀ ANALYSÉ
@@ -384,36 +468,80 @@ async def traiter_un_fichier(
 
                 print()
                 print(
-                    ">>> Rapport déjà analysé."
+                    ">>> RAPPORT DÉJÀ ANALYSÉ."
                 )
+
                 print(
-                    ">>> Récupération depuis SQLite."
+                    ">>> Récupération depuis SQLite..."
                 )
 
-                resultat = rapport_existant
 
-                if isinstance(
-                    resultat,
-                    dict
+                analyses_existantes = (
+                    rapport_existant.get(
+                        "analyses",
+                        [],
+                    )
+                )
+
+
+                # ------------------------------------------------
+                # Sécurité
+                # ------------------------------------------------
+
+                if not isinstance(
+                    analyses_existantes,
+                    list,
                 ):
 
-                    resultat["fichier"] = (
-                        fichier.filename
-                    )
+                    analyses_existantes = []
 
-                    resultat["hash_contenu"] = (
-                        hash_contenu
-                    )
+
+                resultat = {
+
+                    "fichier":
+                        fichier.filename,
+
+                    "hash_contenu":
+                        hash_contenu,
+
+                    "analyse_le":
+                        rapport_existant.get(
+                            "analyse_le"
+                        ),
+
+                    "analyses":
+                        analyses_existantes,
+
+                }
+
+
+                print()
+                print(
+                    ">>> Analyses récupérées :"
+                )
+
+                print(
+                    analyses_existantes
+                )
+
 
                 return resultat
+
 
             # =================================================
             # NOUVELLE ANALYSE
             # =================================================
 
             print()
-            print(">>> NOUVELLE ANALYSE IA...")
-            print(">>> Appel de analyser_rapport()...")
+            print(
+                ">>> NOUVELLE ANALYSE IA..."
+            )
+
+            print(
+                ">>> Appel de "
+                "analyser_rapport()..."
+            )
+
 
             try:
 
@@ -425,39 +553,52 @@ async def traiter_un_fichier(
 
                 print()
                 print("=" * 70)
-                print("!!! ERREUR DANS AGENT !!!")
+                print(
+                    "!!! ERREUR AGENT !!!"
+                )
+
                 print(
                     "TYPE :",
-                    type(erreur).__name__
+                    type(erreur).__name__,
                 )
+
                 print(
                     "MESSAGE :",
-                    str(erreur)
+                    str(erreur),
                 )
+
                 print("=" * 70)
 
                 traceback.print_exc()
+
 
                 raise message_erreur(
                     erreur
                 )
 
+
             # =================================================
-            # DEBUG RESULTAT AGENT
+            # DEBUG AGENT
             # =================================================
 
             print()
             print("=" * 70)
-            print(">>> RESULTAT DE L'AGENT")
+            print(
+                ">>> RESULTAT DE L'AGENT"
+            )
+
             print(
                 "TYPE :",
-                type(analyses).__name__
+                type(analyses).__name__,
             )
+
             print(
                 "CONTENU :",
-                analyses
+                analyses,
             )
+
             print("=" * 70)
+
 
             # =================================================
             # VERIFICATION
@@ -470,12 +611,13 @@ async def traiter_un_fichier(
                     detail=(
                         "L'agent SYNIA n'a retourné "
                         "aucune analyse."
-                    )
+                    ),
                 )
+
 
             if not isinstance(
                 analyses,
-                list
+                list,
             ):
 
                 raise HTTPException(
@@ -483,8 +625,9 @@ async def traiter_un_fichier(
                     detail=(
                         "Format inattendu retourné "
                         "par l'agent SYNIA."
-                    )
+                    ),
                 )
+
 
             # =================================================
             # CREATION DU RESULTAT
@@ -504,64 +647,89 @@ async def traiter_un_fichier(
                     ),
 
                 "analyses":
-                    analyses
+                    analyses,
+
             }
+
 
             # =================================================
             # SAUVEGARDE SQLITE
             # =================================================
 
             print()
-            print(">>> Sauvegarde dans SQLite...")
+            print(
+                ">>> Sauvegarde dans SQLite..."
+            )
+
 
             try:
 
                 bdd.inserer_rapport(
                     connexion,
-                    resultat
+                    resultat,
                 )
 
                 print(
                     ">>> Rapport sauvegardé."
                 )
 
+
             except Exception as erreur:
 
                 print()
-                print("!!! ERREUR SQLITE !!!")
                 print(
+                    "!!! ERREUR SQLITE !!!"
+                )
+
+                print(
+                    "TYPE :",
                     type(erreur).__name__,
-                    str(erreur)
+                )
+
+                print(
+                    "MESSAGE :",
+                    str(erreur),
                 )
 
                 traceback.print_exc()
 
-                # Pour ne pas perdre l'analyse si
-                # SQLite pose problème
+
                 print(
-                    ">>> L'analyse sera quand même retournée."
+                    ">>> L'analyse sera "
+                    "quand même retournée."
                 )
 
+
             return resultat
+
 
         finally:
 
             connexion.close()
 
+
     finally:
 
         # ====================================================
-        # SUPPRESSION FICHIER TEMPORAIRE
+        # SUPPRESSION TEMPORAIRE
         # ====================================================
 
         if (
             chemin_temp
-            and os.path.exists(chemin_temp)
-        ):
-
-            os.remove(
+            and os.path.exists(
                 chemin_temp
             )
+        ):
+
+            try:
+
+                os.remove(
+                    chemin_temp
+                )
+
+            except Exception:
+
+                pass
 
 
 # ============================================================
@@ -570,20 +738,29 @@ async def traiter_un_fichier(
 
 @app.post("/api/analyse")
 async def analyser_fichiers(
-    fichiers: List[UploadFile] = File(...)
+    fichiers: List[UploadFile] = File(...),
 ):
 
     print()
     print("=" * 70)
-    print("========== NOUVELLE REQUÊTE /api/analyse ==========")
+    print(
+        "========== NOUVELLE REQUÊTE "
+        "/api/analyse =========="
+    )
     print("=" * 70)
+
+
+    # ========================================================
+    # VERIFICATION
+    # ========================================================
 
     if not fichiers:
 
         raise HTTPException(
             status_code=400,
-            detail="Aucun fichier reçu."
+            detail="Aucun fichier reçu.",
         )
+
 
     # ========================================================
     # ANALYSER LES FICHIERS
@@ -591,15 +768,76 @@ async def analyser_fichiers(
 
     resultats = []
 
+
     for fichier in fichiers:
 
-        resultat = await traiter_un_fichier(
-            fichier
+        try:
+
+            resultat = await traiter_un_fichier(
+                fichier
+            )
+
+            resultats.append(
+                resultat
+            )
+
+        except HTTPException:
+
+            raise
+
+        except Exception as erreur:
+
+            print()
+            print(
+                "!!! ERREUR TRAITEMENT FICHIER !!!"
+            )
+
+            traceback.print_exc()
+
+
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Erreur pendant le traitement "
+                    f"de {fichier.filename} : "
+                    f"{type(erreur).__name__}: "
+                    f"{str(erreur)}"
+                ),
+            )
+
+
+    # ========================================================
+    # EXTRAIRE LES ANALYSES
+    # ========================================================
+
+    analyses_pour_synthese = []
+
+
+    for resultat in resultats:
+
+        if not isinstance(
+            resultat,
+            dict,
+        ):
+
+            continue
+
+
+        analyses = resultat.get(
+            "analyses",
+            [],
         )
 
-        resultats.append(
-            resultat
-        )
+
+        if isinstance(
+            analyses,
+            list,
+        ):
+
+            analyses_pour_synthese.extend(
+                analyses
+            )
+
 
     # ========================================================
     # DEBUG
@@ -607,126 +845,111 @@ async def analyser_fichiers(
 
     print()
     print("=" * 70)
-    print(">>> RESULTATS AVANT SYNTHESE")
     print(
-        "TYPE :",
-        type(resultats).__name__
+        ">>> DONNEES POUR LA SYNTHESE"
     )
+
     print(
-        "CONTENU :",
-        resultats
+        "Nombre d'analyses :",
+        len(
+            analyses_pour_synthese
+        ),
     )
+
+    print(
+        "Contenu :",
+        analyses_pour_synthese,
+    )
+
     print("=" * 70)
 
-    # ========================================================
-    # EXTRAIRE LES ANALYSES POUR LA SYNTHESE
-    # ========================================================
-
-    analyses_pour_synthese = []
-
-    for resultat in resultats:
-
-        if not isinstance(
-            resultat,
-            dict
-        ):
-            continue
-
-        analyses = resultat.get(
-            "analyses",
-            []
-        )
-
-        if isinstance(
-            analyses,
-            list
-        ):
-
-            analyses_pour_synthese.extend(
-                analyses
-            )
-
-    print()
-    print("=" * 70)
-    print(">>> DONNEES ENVOYEES A LA SYNTHESE")
-    print(
-        "TYPE :",
-        type(analyses_pour_synthese).__name__
-    )
-    print(
-        "CONTENU :",
-        analyses_pour_synthese
-    )
-    print("=" * 70)
 
     # ========================================================
-    # SYNTHESE GLOBALE
+    # SYNTHESE PAR DEFAUT
     # ========================================================
 
     synthese = {
+
         "synthese_interventions": [],
-        "recommandations": []
+
+        "recommandations": [],
+
     }
+
+
+    # ========================================================
+    # GENERATION SYNTHESE
+    # ========================================================
 
     if analyses_pour_synthese:
 
         print()
         print(
-            ">>> Génération de la synthèse globale..."
+            ">>> GENERATION DE LA SYNTHESE..."
         )
 
-        try:
 
-            # IMPORTANT :
-            # ton agent.py définit :
-            # synthese_globale(resultats)
-            #
-            # donc on lui donne UN SEUL argument.
+        try:
 
             synthese = synthese_globale(
                 analyses_pour_synthese
             )
 
+
             print()
             print("=" * 70)
-            print(">>> SYNTHESE GENEREE")
+            print(
+                ">>> SYNTHESE GENEREE"
+            )
+
             print(
                 synthese
             )
+
             print("=" * 70)
+
 
         except Exception as erreur:
 
             print()
             print("=" * 70)
-            print("!!! ERREUR SYNTHESE !!!")
+            print(
+                "!!! ERREUR SYNTHESE !!!"
+            )
+
             print(
                 "TYPE :",
-                type(erreur).__name__
+                type(erreur).__name__,
             )
+
             print(
                 "MESSAGE :",
-                str(erreur)
+                str(erreur),
             )
+
             print("=" * 70)
 
             traceback.print_exc()
+
 
             raise HTTPException(
                 status_code=500,
                 detail=(
                     "Erreur pendant la génération "
-                    f"de la synthèse : "
+                    "de la synthèse : "
                     f"{type(erreur).__name__}: "
                     f"{str(erreur)}"
-                )
+                ),
             )
+
 
     else:
 
         print(
-            ">>> Aucune analyse disponible pour la synthèse."
+            ">>> Aucune analyse disponible "
+            "pour la synthèse."
         )
+
 
     # ========================================================
     # VERIFICATION SYNTHESE
@@ -734,41 +957,108 @@ async def analyser_fichiers(
 
     if not isinstance(
         synthese,
-        dict
+        dict,
     ):
 
         synthese = {
+
             "synthese_interventions": [],
-            "recommandations": []
+
+            "recommandations": [],
+
         }
+
+
+    # ========================================================
+    # NORMALISATION
+    # ========================================================
+
+    synthese_interventions = (
+        synthese.get(
+            "synthese_interventions",
+            [],
+        )
+    )
+
+
+    recommandations = (
+        synthese.get(
+            "recommandations",
+            [],
+        )
+    )
+
+
+    if not isinstance(
+        synthese_interventions,
+        list,
+    ):
+
+        synthese_interventions = []
+
+
+    if not isinstance(
+        recommandations,
+        list,
+    ):
+
+        recommandations = []
+
 
     # ========================================================
     # REPONSE FINALE
     # ========================================================
 
-    print()
-    print("=" * 70)
-    print(">>> ANALYSE TERMINEE")
-    print("=" * 70)
+    reponse = {
 
-    return {
+        "status":
+            "success",
 
-        "status": "success",
+        # Les analyses détaillées sont conservées
+        # pour le backend / historique.
+        #
+        # Le frontend ne les affiche pas.
 
-        "analyses": resultats,
+        "analyses":
+            resultats,
+
+        # Ce bloc est celui utilisé
+        # par app.js.
 
         "synthese": {
 
             "synthese_interventions":
-                synthese.get(
-                    "synthese_interventions",
-                    []
-                ),
+                synthese_interventions,
 
             "recommandations":
-                synthese.get(
-                    "recommandations",
-                    []
-                )
-        }
+                recommandations,
+
+        },
+
     }
+
+
+    # ========================================================
+    # DEBUG FINAL
+    # ========================================================
+
+    print()
+    print("=" * 70)
+    print(
+        ">>> REPONSE ENVOYEE AU FRONTEND"
+    )
+
+    print(
+        reponse
+    )
+
+    print("=" * 70)
+
+    print()
+    print(
+        "========== ANALYSE TERMINEE =========="
+    )
+    print()
+
+
+    return reponse
