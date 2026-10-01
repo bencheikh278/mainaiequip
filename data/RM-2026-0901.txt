@@ -1,0 +1,57 @@
+SONATRACH - Activité Amont - Division Production
+Région Hassi R'Mel - Module 3
+Service Maintenance Mécanique
+
+RAPPORT DE MAINTENANCE N° RM-2026-0901
+Date d'intervention : 12/09/2026
+Rédigé par : Karim BELHADJ, technicien mécanique
+Équipe : Samir MEZIANI (technicien instrumentation), Yacine TAHRI (chef d'équipe)
+
+1. CONTEXTE
+Le 12/09/2026 à 06h40, la salle de contrôle a signalé une alarme de vibration haute
+sur le compresseur centrifuge C-102 (train B). La valeur relevée était de 7,8 mm/s
+alors que le seuil d'alarme est fixé à 7,1 mm/s et le seuil de déclenchement à 11,2 mm/s.
+La température du palier côté accouplement atteignait 92 °C pour une valeur normale
+d'environ 75 °C. Le compresseur a été mis à l'arrêt à 07h15 après confirmation de l'alarme.
+
+2. ANOMALIES CONSTATÉES
+- Compresseur C-102 : vibrations élevées (niveau élevé) et échauffement anormal du
+  palier côté accouplement (niveau moyen).
+- Compresseur C-102 : légère fuite d'huile au niveau du couvercle de palier (niveau faible).
+- Pompe d'huile de graissage P-204 : bruit anormal détecté lors de la ronde de 09h30.
+  Le niveau de gravité n'a pas été évalué.
+
+3. CAUSES
+Après démontage, le roulement côté accouplement présente des traces d'usure et de
+micro-écaillage sur la bague extérieure. La cause probable est la fatigue du roulement.
+Un désalignement de l'accouplement est suspecté mais n'a pas pu être confirmé faute
+d'outil d'alignement laser disponible sur site.
+Pour la pompe P-204, la cause du bruit n'est pas déterminée.
+
+4. INTERVENTIONS RÉALISÉES
+- Mise à l'arrêt du C-102 et consignation électrique et mécanique.
+- Dépose du carter d'accouplement et du couvercle de palier côté accouplement.
+- Remplacement du roulement côté accouplement.
+- Remplacement du joint du couvercle de palier pour supprimer la fuite d'huile.
+- Vidange partielle du circuit de graissage, remplacement du filtre à huile et appoint
+  de 12 litres d'huile ISO VG 46.
+- Remise en service du C-102 à 16h30.
+- Sur la pompe P-204 : contrôle visuel et écoute uniquement, aucune intervention
+  mécanique n'a été effectuée.
+
+5. RÉSULTATS
+Après remise en service, la vibration mesurée sur le C-102 est de 2,4 mm/s et la
+température du palier est stabilisée à 68 °C. Plus aucune fuite d'huile n'est visible.
+Durée totale d'arrêt du C-102 : 9 h 15 min.
+Le bruit de la pompe P-204 persiste.
+
+6. RECOMMANDATIONS DU TECHNICIEN
+- Réaliser un contrôle d'alignement laser de l'accouplement du C-102 à la prochaine
+  opportunité.
+- Mettre en place une analyse vibratoire mensuelle sur le C-102 pendant trois mois.
+- Prévoir l'inspection de la pompe P-204 lors du prochain arrêt programmé.
+- Commander un roulement de rechange pour le stock magasin.
+
+7. DIVERS
+Une réunion sécurité (causerie) a eu lieu le 12/09/2026 à 14h00 sur le thème du travail
+en espace confiné. Ce point ne concerne pas les équipements ci-dessus.

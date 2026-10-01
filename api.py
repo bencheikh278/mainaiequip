@@ -21,7 +21,6 @@ from agent import (
     RapportVide,
     DocumentTropLong,
     JSONInvalide,
-    LMStudioIndisponible,
     ModeleIndisponible,
     MAX_CARACTERES_RAPPORT,
 )
@@ -82,9 +81,7 @@ def message_erreur(erreur):
     if isinstance(erreur, DocumentTropLong):
         return HTTPException(status_code=413, detail=str(erreur))
 
-    if isinstance(erreur, LMStudioIndisponible):
-        return HTTPException(status_code=503, detail=str(erreur))
-
+   
     if isinstance(erreur, ModeleIndisponible):
         return HTTPException(status_code=503, detail=str(erreur))
 
@@ -311,7 +308,6 @@ async def traiter_un_fichier(fichier: UploadFile):
                     RapportVide,
                     DocumentTropLong,
                     JSONInvalide,
-                    LMStudioIndisponible,
                     ModeleIndisponible,
                 ) as erreur:
                     raise message_erreur(erreur)

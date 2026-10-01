@@ -1,0 +1,25 @@
+SONATRACH - Complexe GL1/Z - Arzew
+Service Inspection et Maintenance
+
+COMPTE RENDU DE VISITE (sans numéro de référence)
+
+Date : non renseignée
+Rédacteur : équipe de quart
+
+Ronde effectuée sur les unités de refroidissement.
+
+Échangeur E-301 : contrôle visuel des brides et de l'isolation. Aucune fuite constatée,
+aucune anomalie détectée. Les températures relevées sont conformes. RAS.
+
+Compresseur C-102 : les vibrations semblent légèrement plus élevées que d'habitude
+mais restent sous le seuil d'alarme. Aucune mesure précise n'a été prise. Si les
+vibrations augmentent, il faudra remplacer le roulement.
+
+Pompe de refroidissement P-204 : une fuite au joint mécanique a été observée (gouttes
+régulières, environ 10 gouttes par minute). Le remplacement du joint est prévu la semaine
+prochaine, une demande de travaux a été émise. Rien n'a encore été fait sur cette pompe.
+
+Vanne de régulation FV-410 : réglage du positionneur effectué par l'instrumentiste.
+Le résultat n'a pas été noté dans le carnet.
+
+À noter : le point d'eau de l'atelier est en panne (sans rapport avec les équipements).
