@@ -33,17 +33,18 @@ class ReponseModeleInvalide(Exception):
 # ============================================================
 
 SYSTEM_PROMPT = """
-Tu es SYNIA, un assistant spécialisé dans l'analyse
-des documents de maintenance des équipements industriels.
+Tu es SYNIA, un assistant spécialisé dans l'analyse des
+documents de maintenance des équipements industriels.
 
-Tu travailles à partir de rapports de maintenance réels.
+Tu travailles uniquement à partir de rapports de maintenance
+réels fournis par l'utilisateur.
 
 ============================================================
 RÈGLE PRINCIPALE : FIDÉLITÉ AU DOCUMENT
 ============================================================
 
-Tu dois utiliser UNIQUEMENT les informations présentes
-dans le document fourni.
+Utilise UNIQUEMENT les informations présentes dans les
+documents.
 
 INTERDICTION ABSOLUE d'inventer :
 
@@ -71,32 +72,33 @@ Si une information n'est pas présente :
 DISTINCTION DES ACTIONS
 ============================================================
 
-Tu dois distinguer clairement :
-
 1. INTERVENTION RÉALISÉE
-   Action réellement effectuée et documentée.
+
+Action réellement effectuée et documentée.
 
 2. INTERVENTION PLANIFIÉE
-   Action prévue mais pas encore réalisée.
+
+Action prévue mais pas encore réalisée.
 
 3. RECOMMANDATION SYNIA
-   Conseil futur généré par SYNIA à partir des informations
-   réellement présentes dans le document.
 
-Ne présente JAMAIS une recommandation de SYNIA comme
-une intervention déjà réalisée.
+Conseil futur généré par SYNIA à partir des informations
+réellement présentes.
+
+Ne présente JAMAIS une recommandation SYNIA comme une
+intervention déjà réalisée.
 
 ============================================================
 ÉQUIPEMENTS
 ============================================================
 
-Un rapport peut contenir plusieurs équipements.
+Un même équipement peut apparaître dans plusieurs rapports.
 
-Chaque équipement doit être analysé séparément.
+Lorsque plusieurs rapports concernent le même équipement,
+leurs informations doivent être considérées comme son
+historique.
 
-Tu dois conserver tous les équipements clairement identifiés
-dans le document, même lorsqu'aucune intervention n'est
-documentée pour eux.
+Ne mélange jamais deux équipements différents.
 
 ============================================================
 STYLE
@@ -112,33 +114,33 @@ Les résultats doivent être :
 - reformulés ;
 - sans répétitions inutiles.
 
-Ne copie pas inutilement les phrases du document.
+Ne copie pas inutilement les phrases des rapports.
 
 ============================================================
 RECOMMANDATIONS
 ============================================================
 
-Une recommandation peut être générée pour un équipement :
+Une recommandation peut être produite :
 
 - après une intervention ;
 - lorsqu'une anomalie est documentée ;
 - lorsqu'un problème est signalé sans intervention ;
-- lorsqu'un suivi ou une surveillance est logiquement
-  justifié par les informations du rapport.
+- lorsqu'un suivi est logiquement justifié par les informations
+  disponibles.
 
-Une intervention déjà réalisée NE signifie PAS qu'il ne faut
+Une intervention déjà réalisée ne signifie PAS qu'il ne faut
 plus produire de recommandation.
 
-Cependant, une recommandation doit toujours être justifiée
-par les informations disponibles.
+Mais une recommandation doit toujours être justifiée par les
+informations disponibles.
 
-N'invente jamais une action technique précise simplement
+N'invente jamais une opération technique précise simplement
 pour remplir la liste.
 
 Si aucune recommandation raisonnable ne peut être déduite,
 retourne [].
 
-Priorités possibles uniquement :
+Priorités autorisées :
 
 - faible
 - moyenne
@@ -180,6 +182,7 @@ def appeler_modele(
     print("==========================================\n")
 
     try:
+
         response = requests.post(
             url,
             json=payload,
@@ -188,13 +191,19 @@ def appeler_modele(
 
     except requests.exceptions.RequestException as e:
 
-        print(">>> ERREUR CONNEXION VLLM :", e)
+        print(
+            ">>> ERREUR CONNEXION VLLM :",
+            e
+        )
 
         raise VLLMIndisponible(
             f"Impossible de contacter le serveur VLLM : {e}"
         )
 
-    print(">>> STATUS VLLM :", response.status_code)
+    print(
+        ">>> STATUS VLLM :",
+        response.status_code
+    )
 
     if response.status_code != 200:
 
@@ -208,6 +217,7 @@ def appeler_modele(
         )
 
     try:
+
         data = response.json()
 
     except Exception as e:
@@ -242,16 +252,19 @@ def appeler_modele(
 # NETTOYAGE JSON
 # ============================================================
 
-def nettoyer_json(texte: str) -> Any:
+def nettoyer_json(
+    texte: str
+) -> Any:
 
     if not texte:
+
         raise ReponseModeleInvalide(
             "Réponse du modèle vide."
         )
 
     texte = texte.strip()
 
-    # Retirer les blocs markdown ```json ... ```
+    # Retirer ```json
     texte = re.sub(
         r"^```json\s*",
         "",
@@ -259,6 +272,7 @@ def nettoyer_json(texte: str) -> Any:
         flags=re.IGNORECASE
     )
 
+    # Retirer ```
     texte = re.sub(
         r"^```\s*",
         "",
@@ -273,14 +287,16 @@ def nettoyer_json(texte: str) -> Any:
 
     texte = texte.strip()
 
-    # Premier essai direct
+    # Essai direct
     try:
+
         return json.loads(texte)
 
     except json.JSONDecodeError:
+
         pass
 
-    # Chercher objet JSON
+    # Chercher un objet JSON
     debut_objet = texte.find("{")
     fin_objet = texte.rfind("}")
 
@@ -295,12 +311,14 @@ def nettoyer_json(texte: str) -> Any:
         ]
 
         try:
+
             return json.loads(extrait)
 
         except json.JSONDecodeError:
+
             pass
 
-    # Chercher tableau JSON
+    # Chercher un tableau JSON
     debut_liste = texte.find("[")
     fin_liste = texte.rfind("]")
 
@@ -315,12 +333,17 @@ def nettoyer_json(texte: str) -> Any:
         ]
 
         try:
+
             return json.loads(extrait)
 
         except json.JSONDecodeError:
+
             pass
 
-    print(">>> JSON IMPOSSIBLE À PARSER :")
+    print(
+        ">>> JSON IMPOSSIBLE À PARSER :"
+    )
+
     print(texte)
 
     raise ReponseModeleInvalide(
@@ -337,12 +360,48 @@ def normaliser_liste(
 ) -> List[Any]:
 
     if valeur is None:
+
         return []
 
-    if isinstance(valeur, list):
+    if isinstance(
+        valeur,
+        list
+    ):
+
         return valeur
 
     return [valeur]
+
+
+# ============================================================
+# NORMALISATION NOM ÉQUIPEMENT
+# ============================================================
+
+def normaliser_nom_equipement(
+    nom: str
+) -> str:
+
+    nom = nom.strip().lower()
+
+    # Espaces multiples
+    nom = re.sub(
+        r"\s+",
+        " ",
+        nom
+    )
+
+    # Quelques séparateurs fréquents
+    nom = nom.replace(
+        "–",
+        "-"
+    )
+
+    nom = nom.replace(
+        "—",
+        "-"
+    )
+
+    return nom
 
 
 # ============================================================
@@ -385,7 +444,11 @@ Retourne UNIQUEMENT :
         max_tokens=1200
     )
 
-    if not isinstance(resultat, dict):
+    if not isinstance(
+        resultat,
+        dict
+    ):
+
         return []
 
     equipements = resultat.get(
@@ -399,21 +462,36 @@ Retourne UNIQUEMENT :
 
     resultat_final = []
 
+    noms_normalises = set()
+
     for equipement in equipements:
 
         if not isinstance(
             equipement,
             str
         ):
+
             continue
 
         equipement = equipement.strip()
 
         if not equipement:
+
             continue
 
-        if equipement not in resultat_final:
-            resultat_final.append(equipement)
+        cle = normaliser_nom_equipement(
+            equipement
+        )
+
+        if cle not in noms_normalises:
+
+            resultat_final.append(
+                equipement
+            )
+
+            noms_normalises.add(
+                cle
+            )
 
     print(
         ">>> EQUIPEMENTS IDENTIFIÉS :",
@@ -446,7 +524,8 @@ DOCUMENT :
 OBJECTIF
 ============================================================
 
-Extraire les faits réellement présents dans le document.
+Extraire uniquement les faits réellement présents dans
+le document.
 
 Ne rien inventer.
 
@@ -546,6 +625,7 @@ Retourne uniquement :
         resultat,
         dict
     ):
+
         resultat = {}
 
     resultat.setdefault(
@@ -588,7 +668,6 @@ Retourne uniquement :
         []
     )
 
-    # Normaliser les listes
     for champ in [
         "anomalies",
         "causes",
@@ -681,24 +760,24 @@ RECOMMANDATIONS
 Tu peux produire une recommandation même si une intervention
 a déjà été réalisée.
 
-Exemples de logique ACCEPTABLE :
+Exemples :
 
 - suivi après intervention ;
 - surveillance de l'évolution ;
 - contrôle périodique ;
 - suivi d'une anomalie documentée ;
-- contrôle de l'équipement lorsqu'un problème est signalé.
+- contrôle lorsqu'un problème est signalé.
 
 Mais la recommandation doit être liée aux faits.
 
 NE PAS inventer :
 
-- une panne ;
-- une cause ;
-- une pièce ;
-- une mesure ;
-- une réparation ;
-- une opération technique non justifiée.
+- panne ;
+- cause ;
+- pièce ;
+- mesure ;
+- réparation ;
+- opération technique non justifiée.
 
 Une recommandation est un CONSEIL FUTUR de SYNIA.
 
@@ -747,9 +826,9 @@ Priorités autorisées :
         resultat,
         dict
     ):
+
         resultat = {}
 
-    # Valeurs par défaut
     resultat["equipement"] = equipement
 
     resultat.setdefault(
@@ -792,7 +871,6 @@ Priorités autorisées :
         []
     )
 
-    # Normalisation
     for champ in [
         "anomalies",
         "causes",
@@ -841,12 +919,16 @@ def analyser_rapport(
     print("==========================================")
     print(">>> ANALYSE DU RAPPORT")
     print("==========================================")
+
     print(
         ">>> Nombre de caractères :",
         len(texte)
     )
 
+    # --------------------------------------------------------
     # 1. Identifier les équipements
+    # --------------------------------------------------------
+
     equipements = _lister_equipements(
         texte
     )
@@ -866,7 +948,10 @@ def analyser_rapport(
 
     analyses = []
 
+    # --------------------------------------------------------
     # 2. Analyser chaque équipement
+    # --------------------------------------------------------
+
     for equipement in equipements:
 
         try:
@@ -892,19 +977,82 @@ def analyser_rapport(
                 f"{equipement} : {e}"
             )
 
-            # Ne pas arrêter tout le rapport
             continue
 
     print("\n")
     print("==========================================")
     print(">>> ANALYSE RAPPORT TERMINÉE")
+
     print(
         ">>> Équipements analysés :",
         len(analyses)
     )
+
     print("==========================================")
 
     return analyses
+
+
+# ============================================================
+# REGROUPER LES ÉQUIPEMENTS DES DIFFÉRENTS RAPPORTS
+# ============================================================
+
+def regrouper_par_equipement(
+    resultats: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+
+    groupes = {}
+
+    for resultat in resultats:
+
+        if not isinstance(
+            resultat,
+            dict
+        ):
+            continue
+
+        equipement = resultat.get(
+            "equipement",
+            ""
+        )
+
+        if not equipement:
+            continue
+
+        cle = normaliser_nom_equipement(
+            equipement
+        )
+
+        if cle not in groupes:
+
+            groupes[cle] = {
+                "equipement": equipement,
+                "historique": []
+            }
+
+        groupes[cle]["historique"].append(
+            resultat
+        )
+
+    groupes_final = list(
+        groupes.values()
+    )
+
+    print("\n")
+    print("==========================================")
+    print(">>> REGROUPEMENT DES ÉQUIPEMENTS")
+    print("==========================================")
+
+    for groupe in groupes_final:
+
+        print(
+            f">>> {groupe['equipement']} : "
+            f"{len(groupe['historique'])} occurrence(s)"
+        )
+
+    print("==========================================")
+
+    return groupes_final
 
 
 # ============================================================
@@ -922,14 +1070,28 @@ def synthese_globale(
             "recommandations": []
         }
 
+    # --------------------------------------------------------
+    # Regrouper les mêmes équipements
+    # --------------------------------------------------------
+
+    resultats_groupes = regrouper_par_equipement(
+        resultats
+    )
+
+    # --------------------------------------------------------
+    # Prompt de synthèse
+    # --------------------------------------------------------
+
     prompt = f"""
 Tu es SYNIA, spécialisé dans la synthèse de rapports
 de maintenance industrielle.
 
-Voici les analyses des équipements :
+Les données ci-dessous sont déjà regroupées par équipement.
+
+DONNÉES :
 
 {json.dumps(
-    resultats,
+    resultats_groupes,
     ensure_ascii=False,
     indent=2
 )}
@@ -940,74 +1102,118 @@ OBJECTIF
 
 Produire :
 
-1. une synthèse des interventions et situations
-   documentées ;
+1. UNE synthèse pour CHAQUE équipement ;
 
-2. des recommandations futures.
+2. des recommandations futures pertinentes.
+
+Un équipement peut apparaître dans plusieurs rapports.
+
+Tu dois donc considérer toutes les informations de son
+historique disponible.
+
+Ne crée jamais plusieurs synthèses pour le même équipement.
 
 ============================================================
-SYNTHÈSE
+SYNTHÈSE PAR ÉQUIPEMENT
 ============================================================
 
-IMPORTANT :
+Pour chaque équipement, produis UNE synthèse globale.
 
-Tu dois mentionner TOUS les équipements présents dans
-les analyses.
+Prends en compte uniquement les événements importants.
 
-Pour chaque équipement :
+Tu peux mentionner :
+
+- problème ou anomalie documenté ;
+- intervention réalisée ;
+- résultat documenté ;
+- évolution clairement documentée ;
+- intervention planifiée si elle est importante.
+
+Ne répète pas plusieurs fois la même information.
+
+Ne copie pas les phrases originales.
+
+============================================================
+LONGUEUR
+============================================================
+
+La longueur doit être adaptée à la quantité d'information :
+
+- 1 phrase si les informations sont limitées ;
+- 2 phrases dans un cas normal ;
+- 3 phrases maximum si plusieurs événements importants
+  doivent être résumés.
+
+Ne dépasse JAMAIS 3 phrases par équipement.
+
+Ne remplis pas artificiellement la synthèse.
+
+============================================================
+CAS PARTICULIERS
+============================================================
 
 CAS 1 — intervention réalisée
 
-Fais une phrase courte qui reformule l'intervention.
+Résume brièvement ce qui a été réalisé.
 
-Ne copie pas le texte original.
+CAS 2 — problème ou anomalie sans intervention
 
-CAS 2 — problème/anomalie mais aucune intervention
+Mentionne brièvement le problème documenté.
 
-Mentionne brièvement le problème documenté et le fait
-qu'aucune intervention détaillée n'est présente.
+Ne crée aucune intervention.
 
-CAS 3 — équipement sans intervention et sans problème
-important documenté
+CAS 3 — équipement présent sans problème important
 
 Mentionne simplement l'équipement de manière courte.
 
 Exemple :
 
-"Le ventilateur V-301 est mentionné dans le rapport,
+"Le ventilateur V-301 est mentionné dans les rapports,
 sans intervention détaillée."
 
 ============================================================
-STYLE
+ÉVOLUTION ENTRE RAPPORTS
 ============================================================
 
-- maximum 1 à 2 phrases par équipement ;
-- formulation naturelle ;
-- pas de copier-coller ;
-- pas de répétitions ;
-- pas de détails inutiles ;
-- français professionnel.
+Si plusieurs rapports concernent le même équipement,
+tu peux mentionner une évolution UNIQUEMENT si elle est
+explicitement présente dans les données.
+
+Par exemple :
+
+- problème puis intervention ;
+- intervention puis résultat ;
+- anomalie puis résolution documentée.
+
+Ne déduis jamais une amélioration ou une aggravation
+si elle n'est pas documentée.
 
 ============================================================
 RECOMMANDATIONS
 ============================================================
 
-Les recommandations doivent couvrir les équipements pour
-lesquels un conseil futur peut être déduit.
+Les recommandations doivent être produites au niveau
+de l'équipement.
 
-IMPORTANT :
+Ne crée pas une recommandation séparée pour chaque rapport.
 
-Un équipement ayant déjà reçu une intervention peut
-également recevoir une recommandation.
+Si plusieurs rapports concernent le même équipement,
+évite les recommandations répétitives.
+
+Une seule recommandation claire peut suffire lorsqu'elle
+couvre correctement la situation.
+
+Une recommandation peut être produite même lorsqu'une
+intervention a déjà été réalisée, si les informations
+justifient un suivi.
 
 Exemple :
 
-Intervention réalisée :
+Intervention :
 "Remplacement du joint."
 
 Recommandation :
-"Surveiller l'étanchéité de l'équipement après
-l'intervention."
+"Surveiller l'étanchéité après l'intervention."
 
 Un équipement ayant un problème sans intervention peut
 recevoir une recommandation de suivi ou de contrôle si
@@ -1023,7 +1229,7 @@ NE JAMAIS inventer :
 - valeur ;
 - intervention future précise non justifiée.
 
-Les recommandations sont des CONSEILS DE SYNIA.
+Les recommandations sont des CONSEILS FUTURS DE SYNIA.
 
 Elles ne sont pas des interventions déjà réalisées.
 
@@ -1037,7 +1243,8 @@ Utilise uniquement :
 "moyenne"
 "élevée"
 
-La priorité doit être cohérente avec la gravité documentée.
+La priorité doit être cohérente avec la gravité
+réellement documentée.
 
 Ne donne pas automatiquement "élevée".
 
@@ -1114,9 +1321,9 @@ Ne retourne aucun texte avant ou après le JSON.
         recommandations
     )
 
-    # --------------------------------------------------------
-    # Nettoyage synthèse
-    # --------------------------------------------------------
+    # ========================================================
+    # NETTOYAGE SYNTHÈSE
+    # ========================================================
 
     synthese_finale = []
 
@@ -1127,12 +1334,14 @@ Ne retourne aucun texte avant ou après le JSON.
             str
         ):
 
-            synthese_finale.append(
-                {
-                    "equipement": "",
-                    "resume": item
-                }
-            )
+            if item.strip():
+
+                synthese_finale.append(
+                    {
+                        "equipement": "",
+                        "resume": item.strip()
+                    }
+                )
 
             continue
 
@@ -1140,6 +1349,7 @@ Ne retourne aucun texte avant ou après le JSON.
             item,
             dict
         ):
+
             continue
 
         equipement = item.get(
@@ -1160,18 +1370,24 @@ Ne retourne aucun texte avant ou après le JSON.
             )
 
         if not resume:
+
             continue
 
         synthese_finale.append(
             {
-                "equipement": equipement,
-                "resume": resume
+                "equipement": str(
+                    equipement
+                ).strip(),
+
+                "resume": str(
+                    resume
+                ).strip()
             }
         )
 
-    # --------------------------------------------------------
-    # Nettoyage recommandations
-    # --------------------------------------------------------
+    # ========================================================
+    # NETTOYAGE RECOMMANDATIONS
+    # ========================================================
 
     recommandations_finales = []
 
@@ -1182,13 +1398,15 @@ Ne retourne aucun texte avant ou après le JSON.
             str
         ):
 
-            recommandations_finales.append(
-                {
-                    "equipement": "",
-                    "action": item,
-                    "priorite": "faible"
-                }
-            )
+            if item.strip():
+
+                recommandations_finales.append(
+                    {
+                        "equipement": "",
+                        "action": item.strip(),
+                        "priorite": "faible"
+                    }
+                )
 
             continue
 
@@ -1196,6 +1414,7 @@ Ne retourne aucun texte avant ou après le JSON.
             item,
             dict
         ):
+
             continue
 
         equipement = item.get(
@@ -1222,15 +1441,26 @@ Ne retourne aucun texte avant ou après le JSON.
             priorite = "faible"
 
         if not action:
+
             continue
 
         recommandations_finales.append(
             {
-                "equipement": equipement,
-                "action": action,
+                "equipement": str(
+                    equipement
+                ).strip(),
+
+                "action": str(
+                    action
+                ).strip(),
+
                 "priorite": priorite
             }
         )
+
+    # ========================================================
+    # RESULTAT FINAL
+    # ========================================================
 
     resultat_final = {
         "synthese_interventions": synthese_finale,
