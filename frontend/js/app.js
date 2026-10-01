@@ -1,78 +1,47 @@
-// ============================================================
-// SYNIA — FRONTEND
-// ============================================================
-
-// FastAPI local
 const API_URL = "http://127.0.0.1:8000";
 
 
 // ============================================================
-// VARIABLES
+// ELEMENTS
 // ============================================================
+
+const pages = document.querySelectorAll(".page");
+const navItems = document.querySelectorAll(".nav-item");
+
+const fileInput = document.getElementById("fileInput");
+const uploadZone = document.getElementById("uploadZone");
+const filePreviewList = document.getElementById("filePreviewList");
+
+const analyseBtn = document.getElementById("analyseBtn");
+const loading = document.getElementById("loading");
+const errorMessage = document.getElementById("errorMessage");
+
+const resultContent = document.getElementById("resultContent");
+
+const historyRows = document.getElementById("historyRows");
+const recentAnalyses = document.getElementById("recentAnalyses");
 
 let selectedFiles = [];
 let lastResponse = null;
 
 
 // ============================================================
-// INITIALISATION
-// ============================================================
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    console.log(">>> SYNIA FRONTEND INITIALISÉ");
-
-    initializeNavigation();
-    initializeFileUpload();
-    initializeButtons();
-
-    loadHistory();
-});
-
-
-// ============================================================
 // NAVIGATION
 // ============================================================
 
-function initializeNavigation() {
-
-    const navItems = document.querySelectorAll(".nav-item");
-    const pages = document.querySelectorAll(".page");
-
-    navItems.forEach(item => {
-
-        item.addEventListener("click", () => {
-
-            const pageName = item.dataset.page;
-
-            if (!pageName) {
-                return;
-            }
-
-            showPage(pageName);
-
-        });
-
-    });
-}
-
-
 function showPage(pageName) {
 
-    console.log(">>> PAGE :", pageName);
-
-    const pages = document.querySelectorAll(".page");
-    const navItems = document.querySelectorAll(".nav-item");
-
     pages.forEach(page => {
-
         page.classList.remove("active");
-
-        if (page.id === pageName) {
-            page.classList.add("active");
-        }
-
     });
+
+    const target = document.getElementById(`page-${pageName}`);
+
+    if (!target) {
+        return;
+    }
+
+    target.classList.add("active");
 
     navItems.forEach(item => {
 
@@ -84,290 +53,340 @@ function showPage(pageName) {
 
     });
 
+    if (pageName === "historique") {
+        chargerHistorique();
+    }
+
+    if (pageName === "home") {
+        chargerDernieresAnalyses();
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
 
 // ============================================================
-// FILE UPLOAD
+// SIDEBAR
 // ============================================================
 
-function initializeFileUpload() {
+navItems.forEach(item => {
 
-    const fileInput = document.getElementById("fileInput");
-    const uploadZone = document.getElementById("uploadZone");
+    item.addEventListener("click", () => {
 
-    if (!fileInput) {
-        console.error("fileInput introuvable");
-        return;
-    }
-
-    fileInput.addEventListener("change", event => {
-
-        const files = Array.from(event.target.files);
-
-        addFiles(files);
+        showPage(item.dataset.page);
 
     });
 
-
-    if (uploadZone) {
-
-        uploadZone.addEventListener("dragover", event => {
-
-            event.preventDefault();
-
-            uploadZone.classList.add("dragover");
-
-        });
+});
 
 
-        uploadZone.addEventListener("dragleave", () => {
+// ============================================================
+// HOME -> ANALYSE
+// ============================================================
 
-            uploadZone.classList.remove("dragover");
+const goAnalyseButton = document.getElementById("goAnalyse");
 
-        });
+if (goAnalyseButton) {
 
+    goAnalyseButton.addEventListener("click", () => {
 
-        uploadZone.addEventListener("drop", event => {
+        showPage("analyse");
 
-            event.preventDefault();
-
-            uploadZone.classList.remove("dragover");
-
-            const files = Array.from(event.dataTransfer.files);
-
-            addFiles(files);
-
-        });
-
-    }
+    });
 
 }
 
 
 // ============================================================
-// AJOUT DES FICHIERS
+// HISTORY BUTTON
 // ============================================================
 
-function addFiles(files) {
+const historyButton = document.querySelector(".text-button");
 
-    const allowedExtensions = [
-        ".pdf",
-        ".docx",
-        ".txt"
-    ];
+if (historyButton) {
 
-    const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+    historyButton.addEventListener("click", () => {
 
-    files.forEach(file => {
+        showPage("historique");
+
+    });
+
+}
+
+
+// ============================================================
+// FILE SELECTION
+// ============================================================
+
+if (fileInput) {
+
+    fileInput.addEventListener("change", () => {
+
+        addFiles(fileInput.files);
+
+        fileInput.value = "";
+
+    });
+
+}
+
+
+// ============================================================
+// ADD FILES
+// ============================================================
+
+function addFiles(fileList) {
+
+    hideError();
+
+    const maxSize = 20 * 1024 * 1024;
+
+    Array.from(fileList).forEach(file => {
+
+        // ----------------------------------------------------
+        // EMPTY FILE
+        // ----------------------------------------------------
+
+        if (file.size === 0) {
+
+            showError(
+                `Le fichier "${file.name}" est vide.`
+            );
+
+            return;
+        }
+
+
+        // ----------------------------------------------------
+        // SIZE
+        // ----------------------------------------------------
+
+        if (file.size > maxSize) {
+
+            showError(
+                `"${file.name}" dépasse la limite de 20 Mo.`
+            );
+
+            return;
+        }
+
+
+        // ----------------------------------------------------
+        // EXTENSION
+        // ----------------------------------------------------
+
+        const point = file.name.lastIndexOf(".");
 
         const extension =
-            "." + file.name.split(".").pop().toLowerCase();
+            point >= 0
+                ? file.name.slice(point).toLowerCase()
+                : "";
 
-        if (!allowedExtensions.includes(extension)) {
+        if (![".pdf", ".docx", ".txt"].includes(extension)) {
 
             showError(
-                `Format non supporté : ${file.name}`
+                `"${file.name}" n'est pas un format supporté. ` +
+                `Formats acceptés : PDF, DOCX, TXT.`
             );
 
             return;
         }
 
 
-        if (file.size > MAX_SIZE) {
+        // ----------------------------------------------------
+        // DUPLICATE IN CURRENT SELECTION
+        // ----------------------------------------------------
 
-            showError(
-                `Le fichier ${file.name} dépasse 20 MB.`
-            );
-
-            return;
-        }
-
-
-        // éviter les doublons
-        const alreadyExists = selectedFiles.some(
+        const dejaPresent = selectedFiles.some(
             existingFile =>
                 existingFile.name === file.name &&
                 existingFile.size === file.size
         );
 
-        if (alreadyExists) {
-            return;
+        if (!dejaPresent) {
+
+            selectedFiles.push(file);
+
         }
-
-
-        selectedFiles.push(file);
 
     });
 
-
-    displaySelectedFiles();
-
+    renderFileList();
 }
 
 
 // ============================================================
-// AFFICHER LES FICHIERS SÉLECTIONNÉS
+// RENDER FILE LIST
 // ============================================================
 
-function displaySelectedFiles() {
+function renderFileList() {
 
-    const container =
-        document.getElementById("filePreviewList");
-
-    if (!container) {
+    if (!filePreviewList) {
         return;
     }
 
-
-    container.innerHTML = "";
-
-
-    if (selectedFiles.length === 0) {
-
-        container.innerHTML = `
-            <div class="empty-files">
-                Aucun fichier sélectionné
-            </div>
-        `;
-
-        return;
-    }
-
+    filePreviewList.innerHTML = "";
 
     selectedFiles.forEach((file, index) => {
 
-        const fileElement = document.createElement("div");
+        const item = document.createElement("div");
 
-        fileElement.className = "file-preview";
+        item.className = "file-preview show";
 
+        item.innerHTML = `
 
-        fileElement.innerHTML = `
+            <div class="file-preview-left">
 
-            <div class="file-info">
+                <div class="file-preview-icon">
 
-                <span class="file-name">
-                    ${escapeHtml(file.name)}
-                </span>
+                    <img
+                        src="assets/icons/nice.png"
+                        alt=""
+                    >
 
-                <span class="file-size">
-                    ${formatFileSize(file.size)}
-                </span>
+                </div>
+
+                <div>
+
+                    <strong>
+                        ${escapeHtml(file.name)}
+                    </strong>
+
+                    <span>
+                        ${formatSize(file.size)}
+                    </span>
+
+                </div>
 
             </div>
 
+
             <button
-                type="button"
                 class="remove-file"
+                type="button"
                 data-index="${index}"
             >
-                ×
+
+                <img
+                    src="assets/icons/x.png"
+                    alt="Supprimer"
+                >
+
             </button>
 
         `;
 
-
-        container.appendChild(fileElement);
+        filePreviewList.appendChild(item);
 
     });
 
 
-    // Boutons supprimer
+    filePreviewList
+        .querySelectorAll(".remove-file")
+        .forEach(button => {
 
-    const removeButtons =
-        container.querySelectorAll(".remove-file");
+            button.addEventListener("click", () => {
 
+                const index =
+                    Number(button.dataset.index);
 
-    removeButtons.forEach(button => {
+                selectedFiles.splice(index, 1);
 
-        button.addEventListener("click", () => {
+                renderFileList();
 
-            const index =
-                parseInt(button.dataset.index);
-
-            selectedFiles.splice(index, 1);
-
-            displaySelectedFiles();
+            });
 
         });
 
+
+    if (analyseBtn) {
+
+        analyseBtn.disabled =
+            selectedFiles.length === 0;
+
+    }
+}
+
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+
+if (uploadZone) {
+
+    uploadZone.addEventListener("dragover", event => {
+
+        event.preventDefault();
+
+        uploadZone.classList.add("dragover");
+
+    });
+
+
+    uploadZone.addEventListener("dragleave", () => {
+
+        uploadZone.classList.remove("dragover");
+
+    });
+
+
+    uploadZone.addEventListener("drop", event => {
+
+        event.preventDefault();
+
+        uploadZone.classList.remove("dragover");
+
+        const files =
+            event.dataTransfer.files;
+
+        if (!files.length) {
+            return;
+        }
+
+        addFiles(files);
+
     });
 
 }
 
 
 // ============================================================
-// BOUTONS
+// RESET FILES
 // ============================================================
 
-function initializeButtons() {
+function resetFile() {
 
-    const analyseBtn =
-        document.getElementById("analyseBtn");
+    selectedFiles = [];
 
-    if (analyseBtn) {
-
-        analyseBtn.addEventListener(
-            "click",
-            analyseDocument
-        );
-
-    }
-
-
-    const newAnalysisBtn =
-        document.getElementById("newAnalysisBtn");
-
-    if (newAnalysisBtn) {
-
-        newAnalysisBtn.addEventListener(
-            "click",
-            resetAnalysis
-        );
-
-    }
-
-
-    const exportBtn =
-        document.getElementById("exportJsonBtn");
-
-    if (exportBtn) {
-
-        exportBtn.addEventListener(
-            "click",
-            exportJSON
-        );
-
-    }
-
-
-    const downloadBtn =
-        document.getElementById("downloadBtn");
-
-    if (downloadBtn) {
-
-        downloadBtn.addEventListener(
-            "click",
-            downloadResult
-        );
-
-    }
+    renderFileList();
 
 }
 
 
 // ============================================================
-// ANALYSE DU DOCUMENT
+// ANALYSE BUTTON
+// ============================================================
+
+if (analyseBtn) {
+
+    analyseBtn.addEventListener(
+        "click",
+        analyseDocument
+    );
+
+}
+
+
+// ============================================================
+// ANALYSE DOCUMENT
 // ============================================================
 
 async function analyseDocument() {
 
-    console.log("=================================");
-    console.log(">>> DÉBUT ANALYSE");
-    console.log("=================================");
-
-
-    if (selectedFiles.length === 0) {
+    if (!selectedFiles.length) {
 
         showError(
             "Veuillez sélectionner au moins un fichier."
@@ -382,23 +401,41 @@ async function analyseDocument() {
 
     selectedFiles.forEach(file => {
 
-        // IMPORTANT :
-        // Le backend FastAPI attend "fichiers"
-
-        formData.append("fichiers", file);
+        formData.append(
+            "fichiers",
+            file
+        );
 
     });
 
 
-    setLoading(true);
-    clearError();
+    // --------------------------------------------------------
+    // UI
+    // --------------------------------------------------------
+
+    analyseBtn.disabled = true;
+
+    analyseBtn.innerHTML =
+        "Analyse en cours...";
+
+    if (loading) {
+        loading.classList.add("show");
+    }
+
+    hideError();
 
 
     try {
 
-        console.log(">>> Envoi vers :", API_URL);
-        console.log(">>> Nombre de fichiers :", selectedFiles.length);
+        console.log(
+            ">>> Envoi des fichiers :",
+            selectedFiles.map(file => file.name)
+        );
 
+
+        // ----------------------------------------------------
+        // API
+        // ----------------------------------------------------
 
         const response = await fetch(
             `${API_URL}/api/analyse`,
@@ -409,82 +446,118 @@ async function analyseDocument() {
         );
 
 
+        // ----------------------------------------------------
+        // JSON
+        // ----------------------------------------------------
+
+        let data;
+
+        try {
+
+            data = await response.json();
+
+        } catch (error) {
+
+            throw new Error(
+                "Le serveur a retourné une réponse invalide."
+            );
+
+        }
+
+
         console.log(
-            ">>> STATUS API :",
-            response.status
+            ">>> Réponse API :",
+            data
         );
 
 
-        // ====================================================
-        // LIRE LA RÉPONSE JSON
-        // ====================================================
-
-        const data = await response.json();
-
-
-        console.log("=================================");
-        console.log(">>> RÉPONSE API");
-        console.log(data);
-        console.log("=================================");
-
+        // ----------------------------------------------------
+        // ERROR
+        // ----------------------------------------------------
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail ||
-                data.message ||
-                `Erreur HTTP ${response.status}`
+                extraireMessageErreur(data) ||
+                "Erreur pendant l'analyse."
             );
 
         }
 
+
+        // ----------------------------------------------------
+        // CHECK RESPONSE
+        // ----------------------------------------------------
 
         if (!data) {
 
             throw new Error(
-                "La réponse du serveur est vide."
+                "Aucune réponse reçue du serveur."
             );
 
         }
 
 
-        // sauvegarder la réponse
+        if (!data.synthese) {
+
+            console.warn(
+                "La réponse ne contient pas de synthèse.",
+                data
+            );
+
+        }
+
+
+        // ----------------------------------------------------
+        // SAVE RESPONSE
+        // ----------------------------------------------------
 
         lastResponse = data;
 
 
-        // afficher le résultat
+        // ----------------------------------------------------
+        // DISPLAY
+        // ----------------------------------------------------
 
         displayResult(data);
 
 
-        // aller à la page résultat
+        // ----------------------------------------------------
+        // RESULT PAGE
+        // ----------------------------------------------------
 
         showPage("result");
-
-
-        // actualiser l'historique
-
-        loadHistory();
 
 
     } catch (error) {
 
         console.error(
-            ">>> ERREUR ANALYSE :",
+            "!!! ERREUR FRONTEND !!!",
             error
         );
 
-
         showError(
             error.message ||
-            "Une erreur est survenue pendant l'analyse."
+            "Impossible de contacter le serveur."
         );
-
 
     } finally {
 
-        setLoading(false);
+        if (loading) {
+            loading.classList.remove("show");
+        }
+
+        analyseBtn.disabled =
+            selectedFiles.length === 0;
+
+        analyseBtn.innerHTML = `
+            Analyser maintenant
+
+            <img
+                src="assets/icons/goto.png"
+                alt=""
+            >
+        `;
 
     }
 
@@ -492,220 +565,293 @@ async function analyseDocument() {
 
 
 // ============================================================
-// AFFICHAGE DU RÉSULTAT
+// DISPLAY RESULT
+//
+// IMPORTANT:
+// L'interface affiche UNIQUEMENT:
+//
+// 01 - Synthèse des interventions réalisées
+// 02 - Recommandations
+//
+// Elle n'affiche pas les analyses détaillées des équipements.
 // ============================================================
 
 function displayResult(data) {
 
-    console.log("=================================");
-    console.log(">>> DISPLAY RESULT");
-    console.log(">>> DATA :", data);
-    console.log("=================================");
-
-
-    const resultContent =
-        document.getElementById("resultContent");
-
-
     if (!resultContent) {
-
-        console.error(
-            ">>> resultContent introuvable dans le HTML"
-        );
-
         return;
     }
-
 
     resultContent.innerHTML = "";
 
 
-    // ========================================================
-    // VÉRIFICATION
-    // ========================================================
+    console.log(
+        ">>> AFFICHAGE RESULTAT"
+    );
 
-    if (!data) {
-
-        resultContent.innerHTML = `
-            <div class="error-box">
-                Aucune donnée reçue.
-            </div>
-        `;
-
-        return;
-    }
+    console.log(
+        ">>> Synthèse :",
+        data.synthese
+    );
 
 
-    const synthese = data.synthese;
+    const synthese =
+        data.synthese || {};
 
-
-    if (!synthese) {
-
-        console.error(
-            ">>> La propriété 'synthese' est absente"
-        );
-
-        resultContent.innerHTML = `
-
-            <div class="error-box">
-
-                <h3>Aucune synthèse reçue</h3>
-
-                <pre>
-${escapeHtml(JSON.stringify(data, null, 2))}
-                </pre>
-
-            </div>
-
-        `;
-
-        return;
-    }
 
 
     // ========================================================
-    // 1. SYNTHÈSE DES INTERVENTIONS
+    // 01 - SYNTHESE DES INTERVENTIONS REALISEES
     // ========================================================
 
-    const interventions =
-        Array.isArray(synthese.synthese_interventions)
+    const syntheses =
+        Array.isArray(
+            synthese.synthese_interventions
+        )
             ? synthese.synthese_interventions
             : [];
 
 
-    let interventionsHTML = "";
+    let syntheseHTML = "";
 
 
-    if (interventions.length === 0) {
+    if (!syntheses.length) {
 
-        interventionsHTML = `
-
-            <div class="empty-result">
-
-                Aucune intervention réalisée trouvée.
-
-            </div>
-
+        syntheseHTML = `
+            <p class="empty-result">
+                Aucune synthèse des interventions réalisées
+                n'a été produite.
+            </p>
         `;
 
     } else {
 
-        interventionsHTML = interventions
-            .map((item, index) => {
+        syntheses.forEach(item => {
 
-                // Si l'IA retourne directement une chaîne
-
-                if (typeof item === "string") {
-
-                    return `
-
-                        <div class="result-card">
-
-                            <p>
-                                ${escapeHtml(item)}
-                            </p>
-
-                        </div>
-
-                    `;
-
-                }
+            let equipement = "";
+            let resume = "";
 
 
-                // Nom équipement
+            // ------------------------------------------------
+            // CAS 1 :
+            // { equipement, resume }
+            // ------------------------------------------------
 
-                const equipement =
+            if (
+                typeof item === "object" &&
+                item !== null
+            ) {
+
+                equipement =
                     item.equipement ||
-                    item.nom_equipement ||
-                    item.equipment ||
-                    "";
+                    item.nom ||
+                    "Équipement";
 
-
-                // Texte de synthèse
-
-                const texte =
+                resume =
                     item.resume ||
                     item.synthese ||
                     item.description ||
                     item.intervention ||
-                    item.resultat ||
-                    item.texte ||
-                    item.action ||
                     "";
 
+            }
 
-                return `
 
-                    <div class="result-card">
+            // ------------------------------------------------
+            // CAS 2 :
+            // simple string
+            // ------------------------------------------------
 
-                        ${
-                            equipement
-                                ? `
-                                    <h3>
-                                        ${escapeHtml(equipement)}
-                                    </h3>
-                                  `
-                                : ""
-                        }
+            else {
 
-                        <p>
-                            ${escapeHtml(
-                                texte ||
-                                "Aucune information disponible."
-                            )}
-                        </p>
+                resume = String(item);
 
-                    </div>
+            }
 
-                `;
 
-            })
-            .join("");
+            syntheseHTML += `
+
+                <div class="synthesis-equipment">
+
+                    ${
+                        equipement
+                            ? `
+                                <h3>
+                                    ${escapeHtml(
+                                        equipement
+                                    )}
+                                </h3>
+                            `
+                            : ""
+                    }
+
+                    <p>
+                        ${escapeHtml(
+                            resume
+                        )}
+                    </p>
+
+                </div>
+
+            `;
+
+        });
 
     }
 
 
+    addResultItem(
+        resultContent,
+        "01",
+        "Synthèse des interventions réalisées",
+        syntheseHTML
+    );
+
+
+
     // ========================================================
-    // 2. RECOMMANDATIONS
+    // 02 - RECOMMANDATIONS
     // ========================================================
 
     const recommandations =
-        Array.isArray(synthese.recommandations)
+        Array.isArray(
+            synthese.recommandations
+        )
             ? synthese.recommandations
             : [];
 
 
-    let recommandationsHTML = "";
+    let recommendationsHTML = "";
 
 
-    if (recommandations.length === 0) {
+    if (!recommandations.length) {
 
-        recommandationsHTML = `
-
-            <div class="empty-result">
-
-                Aucune recommandation générée.
-
-            </div>
-
+        recommendationsHTML = `
+            <p class="empty-result">
+                Aucune recommandation future
+                n'a été générée.
+            </p>
         `;
 
     } else {
 
-        recommandationsHTML = recommandations
-            .map((item, index) => {
 
-                // Si l'IA retourne directement une chaîne
+        recommandations.forEach(
+            recommandation => {
 
-                if (typeof item === "string") {
 
-                    return `
+                // =================================================
+                // FORMAT ACTUEL DE TON AGENT :
+                //
+                // {
+                //   equipement: "...",
+                //   action: "...",
+                //   priorite: "moyenne"
+                // }
+                // =================================================
 
-                        <div class="result-card">
+                if (
+                    typeof recommandation === "object" &&
+                    recommandation !== null
+                ) {
 
-                            <p>
-                                ${escapeHtml(item)}
-                            </p>
+                    const equipement =
+                        recommandation.equipement ||
+                        "Équipement";
+
+                    const action =
+                        recommandation.action ||
+                        "";
+
+                    const priorite =
+                        recommandation.priorite ||
+                        "moyenne";
+
+                    const justification =
+                        recommandation.justification ||
+                        "";
+
+
+                    const priorityClass =
+                        getPriorityClass(
+                            priorite
+                        );
+
+
+                    recommendationsHTML += `
+
+                        <div
+                            class="recommendation-group"
+                        >
+
+                            <h3
+                                class="recommendation-equipment"
+                            >
+                                ${escapeHtml(
+                                    equipement
+                                )}
+                            </h3>
+
+
+                            <div
+                                class="recommendation-actions"
+                            >
+
+                                <div
+                                    class="priority-box"
+                                >
+
+                                    <span
+                                        class="priority-label ${priorityClass}"
+                                    >
+                                        ${escapeHtml(
+                                            priorite
+                                        )}
+                                    </span>
+
+
+                                    <div
+                                        class="priority-action"
+                                    >
+
+                                        <strong>
+                                            Action recommandée
+                                        </strong>
+
+                                        <p>
+                                            ${escapeHtml(
+                                                action
+                                            )}
+                                        </p>
+
+                                    </div>
+
+
+                                    ${
+                                        justification
+                                            ? `
+                                                <div
+                                                    class="priority-justification"
+                                                >
+
+                                                    <strong>
+                                                        Justification
+                                                    </strong>
+
+                                                    <p>
+                                                        ${escapeHtml(
+                                                            justification
+                                                        )}
+                                                    </p>
+
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </div>
 
                         </div>
 
@@ -713,190 +859,260 @@ ${escapeHtml(JSON.stringify(data, null, 2))}
 
                 }
 
-
-                const equipement =
-                    item.equipement ||
-                    item.nom_equipement ||
-                    item.equipment ||
-                    "";
-
-
-                const action =
-                    item.action ||
-                    item.recommandation ||
-                    item.description ||
-                    item.texte ||
-                    "";
-
-
-                const priorite =
-                    item.priorite ||
-                    item.priority ||
-                    "";
-
-
-                const justification =
-                    item.justification ||
-                    "";
-
-
-                return `
-
-                    <div class="result-card">
-
-                        ${
-                            equipement
-                                ? `
-                                    <h3>
-                                        ${escapeHtml(equipement)}
-                                    </h3>
-                                  `
-                                : ""
-                        }
-
-
-                        ${
-                            action
-                                ? `
-                                    <p>
-                                        <strong>
-                                            Recommandation :
-                                        </strong>
-
-                                        ${escapeHtml(action)}
-                                    </p>
-                                  `
-                                : ""
-                        }
-
-
-                        ${
-                            priorite
-                                ? `
-                                    <p>
-                                        <strong>
-                                            Priorité :
-                                        </strong>
-
-                                        ${escapeHtml(priorite)}
-                                    </p>
-                                  `
-                                : ""
-                        }
-
-
-                        ${
-                            justification
-                                ? `
-                                    <p>
-                                        <strong>
-                                            Justification :
-                                        </strong>
-
-                                        ${escapeHtml(
-                                            justification
-                                        )}
-                                    </p>
-                                  `
-                                : ""
-                        }
-
-                    </div>
-
-                `;
-
-            })
-            .join("");
+            }
+        );
 
     }
 
 
-    // ========================================================
-    // AFFICHAGE FINAL
-    // ========================================================
+    addResultItem(
+        resultContent,
+        "02",
+        "Recommandations",
+        `
+            <div class="recommendations-container">
 
-    resultContent.innerHTML = `
+                ${recommendationsHTML}
 
-        <section class="result-section">
-
-            <h2>
-                Synthèse des interventions réalisées
-            </h2>
-
-            <div class="result-list">
-
-                ${interventionsHTML}
-
-            </div>
-
-        </section>
-
-
-        <section class="result-section">
-
-            <h2>
-                Recommandations
-            </h2>
-
-            <div class="result-list">
-
-                ${recommandationsHTML}
+                <div class="recommendation-note">
+                    Les recommandations sont des actions
+                    futures proposées par SYNIA.
+                    Elles doivent être validées par un
+                    responsable de maintenance.
+                </div>
 
             </div>
-
-        </section>
-
-    `;
-
-
-    console.log(
-        ">>> AFFICHAGE DU RÉSULTAT TERMINÉ"
+        `
     );
 
 }
 
 
 // ============================================================
-// HISTORIQUE
+// RESULT ITEM
 // ============================================================
 
-async function loadHistory() {
+function addResultItem(
+    container,
+    index,
+    label,
+    value
+) {
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "result-item";
+
+
+    item.innerHTML = `
+
+        <div class="result-index">
+            ${index}
+        </div>
+
+        <div class="result-label">
+            ${label}
+        </div>
+
+        <div class="result-value">
+            ${value}
+        </div>
+
+    `;
+
+
+    container.appendChild(item);
+
+}
+
+
+// ============================================================
+// PRIORITY CLASS
+// ============================================================
+
+function getPriorityClass(priorite) {
+
+    const p =
+        String(priorite || "")
+            .toLowerCase();
+
+
+    if (
+        p.includes("élev") ||
+        p.includes("elev") ||
+        p.includes("haute") ||
+        p.includes("high")
+    ) {
+
+        return "priority-high";
+
+    }
+
+
+    if (
+        p.includes("faible") ||
+        p.includes("basse") ||
+        p.includes("low")
+    ) {
+
+        return "priority-low";
+
+    }
+
+
+    return "priority-medium";
+
+}
+
+
+// ============================================================
+// ERROR MESSAGE
+// ============================================================
+
+function extraireMessageErreur(data) {
+
+    if (!data) {
+        return "";
+    }
+
+
+    const detail =
+        data.detail;
+
+
+    if (!detail) {
+        return "";
+    }
+
+
+    if (typeof detail === "string") {
+        return detail;
+    }
+
+
+    if (Array.isArray(detail)) {
+
+        return detail
+            .map(item =>
+                item.msg ||
+                item.detail ||
+                ""
+            )
+            .filter(Boolean)
+            .join(" ");
+
+    }
+
+
+    return String(detail);
+
+}
+
+
+// ============================================================
+// HISTORY
+// ============================================================
+
+async function chargerHistorique() {
+
+    if (!historyRows) {
+        return;
+    }
+
+
+    historyRows.innerHTML = `
+        <div class="history-row">
+            <span>Chargement...</span>
+        </div>
+    `;
+
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/api/historique`
-        );
-
-
-        if (!response.ok) {
-
-            console.warn(
-                "Impossible de charger l'historique."
+        const response =
+            await fetch(
+                `${API_URL}/api/historique`
             );
+
+
+        const data =
+            await response.json();
+
+
+        const items =
+            data.historique || [];
+
+
+        if (!items.length) {
+
+            historyRows.innerHTML = `
+                <div class="history-row">
+                    <span>
+                        Aucune analyse pour le moment.
+                    </span>
+                </div>
+            `;
 
             return;
         }
 
 
-        const data = await response.json();
+        historyRows.innerHTML =
+            items.map(item => `
+
+                <div class="history-row">
+
+                    <div class="history-document">
+
+                        <img
+                            src="assets/icons/nice.png"
+                            alt=""
+                        >
+
+                        <span>
+                            ${escapeHtml(
+                                item.fichier
+                            )}
+                        </span>
+
+                    </div>
 
 
-        console.log(
-            ">>> HISTORIQUE :",
-            data
-        );
+                    <span>
+                        ${escapeHtml(
+                            item.analyse_le ||
+                            item.date ||
+                            "--"
+                        )}
+                    </span>
 
 
-        displayHistory(data);
+                    <span class="history-success">
+                        Analysé
+                    </span>
+
+                </div>
+
+            `).join("");
 
 
     } catch (error) {
 
-        console.warn(
+        console.error(
             "Erreur historique :",
             error
         );
+
+
+        historyRows.innerHTML = `
+            <div class="history-row">
+                <span>
+                    Impossible de charger l'historique.
+                </span>
+            </div>
+        `;
 
     }
 
@@ -904,95 +1120,119 @@ async function loadHistory() {
 
 
 // ============================================================
-// AFFICHER HISTORIQUE
+// RECENT ANALYSES
 // ============================================================
 
-function displayHistory(data) {
+async function chargerDernieresAnalyses() {
 
-    const historyRows =
-        document.getElementById("historyRows");
-
-
-    if (!historyRows) {
+    if (!recentAnalyses) {
         return;
     }
 
 
-    historyRows.innerHTML = "";
+    try {
+
+        const response =
+            await fetch(
+                `${API_URL}/api/historique`
+            );
 
 
-    let history = [];
+        const data =
+            await response.json();
 
 
-    if (Array.isArray(data)) {
-
-        history = data;
-
-    } else if (Array.isArray(data.historique)) {
-
-        history = data.historique;
-
-    } else if (Array.isArray(data.rapports)) {
-
-        history = data.rapports;
-
-    }
+        const items =
+            (data.historique || [])
+                .slice(0, 3);
 
 
-    if (history.length === 0) {
+        if (!items.length) {
 
-        historyRows.innerHTML = `
+            recentAnalyses.innerHTML = `
+                <div class="recent-item">
 
-            <tr>
+                    <div class="recent-main">
 
-                <td colspan="5">
+                        <span>
+                            Aucune analyse pour le moment.
+                        </span>
 
-                    Aucun rapport analysé.
+                    </div>
 
-                </td>
+                </div>
+            `;
 
-            </tr>
+            return;
+        }
 
+
+        recentAnalyses.innerHTML =
+            items.map(item => `
+
+                <div class="recent-item">
+
+                    <div class="document-mini-icon">
+
+                        <img
+                            src="assets/icons/nice.png"
+                            alt=""
+                        >
+
+                    </div>
+
+
+                    <div class="recent-main">
+
+                        <strong>
+                            ${escapeHtml(
+                                item.fichier
+                            )}
+                        </strong>
+
+                        <span>
+                            ${escapeHtml(
+                                item.analyse_le ||
+                                item.date ||
+                                "--"
+                            )}
+                        </span>
+
+                    </div>
+
+
+                    <span class="recent-status">
+                        Terminé
+                    </span>
+
+                </div>
+
+            `).join("");
+
+
+    } catch (error) {
+
+        console.error(
+            "Erreur dernières analyses :",
+            error
+        );
+
+
+        recentAnalyses.innerHTML = `
+            <div class="recent-item">
+
+                <div class="recent-main">
+
+                    <span>
+                        Impossible de charger les analyses.
+                    </span>
+
+                </div>
+
+            </div>
         `;
 
-        return;
     }
-
-
-    history.forEach(item => {
-
-        const row =
-            document.createElement("tr");
-
-
-        const fichier =
-            item.fichier ||
-            item.nom ||
-            "—";
-
-
-        const date =
-            item.analyse_le ||
-            item.date ||
-            "—";
-
-
-        row.innerHTML = `
-
-            <td>
-                ${escapeHtml(fichier)}
-            </td>
-
-            <td>
-                ${escapeHtml(date)}
-            </td>
-
-        `;
-
-
-        historyRows.appendChild(row);
-
-    });
 
 }
 
@@ -1001,268 +1241,248 @@ function displayHistory(data) {
 // EXPORT JSON
 // ============================================================
 
-function exportJSON() {
-
-    if (!lastResponse) {
-
-        showError(
-            "Aucun résultat à exporter."
-        );
-
-        return;
-    }
+const exportJsonBtn =
+    document.getElementById(
+        "exportJsonBtn"
+    );
 
 
-    const json =
-        JSON.stringify(
-            lastResponse,
-            null,
-            2
-        );
+if (exportJsonBtn) {
 
+    exportJsonBtn.addEventListener(
+        "click",
+        () => {
 
-    const blob =
-        new Blob(
-            [json],
-            {
-                type: "application/json"
+            if (!lastResponse) {
+
+                showError(
+                    "Aucune analyse disponible."
+                );
+
+                return;
             }
-        );
 
 
-    const url =
-        URL.createObjectURL(blob);
+            const blob =
+                new Blob(
+                    [
+                        JSON.stringify(
+                            lastResponse,
+                            null,
+                            2
+                        )
+                    ],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
 
 
-    const link =
-        document.createElement("a");
+            const url =
+                URL.createObjectURL(blob);
 
 
-    link.href = url;
-
-    link.download =
-        "synia_resultat.json";
+            const link =
+                document.createElement("a");
 
 
-    document.body.appendChild(link);
+            link.href = url;
 
-    link.click();
-
-    link.remove();
-
-
-    URL.revokeObjectURL(url);
-
-}
+            link.download =
+                "synia_analyse.json";
 
 
-// ============================================================
-// TÉLÉCHARGER / IMPRIMER LE RÉSULTAT
-// ============================================================
+            document.body.appendChild(link);
 
-function downloadResult() {
+            link.click();
 
-    if (!lastResponse) {
-
-        showError(
-            "Aucun résultat disponible."
-        );
-
-        return;
-    }
+            link.remove();
 
 
-    /*
-       Pour le moment, on utilise
-       l'impression du navigateur.
+            URL.revokeObjectURL(url);
 
-       Dans la fenêtre d'impression :
-       choisir "Enregistrer au format PDF".
-    */
-
-    window.print();
+        }
+    );
 
 }
 
 
 // ============================================================
-// NOUVELLE ANALYSE
+// DOWNLOAD
 // ============================================================
 
-function resetAnalysis() {
-
-    selectedFiles = [];
-
-    lastResponse = null;
-
-
-    const fileInput =
-        document.getElementById("fileInput");
+const downloadBtn =
+    document.getElementById(
+        "downloadBtn"
+    );
 
 
-    if (fileInput) {
+if (downloadBtn) {
 
-        fileInput.value = "";
+    downloadBtn.addEventListener(
+        "click",
+        () => {
 
-    }
+            window.print();
 
-
-    const resultContent =
-        document.getElementById("resultContent");
-
-
-    if (resultContent) {
-
-        resultContent.innerHTML = "";
-
-    }
-
-
-    displaySelectedFiles();
-
-    clearError();
-
-    showPage("upload");
+        }
+    );
 
 }
 
 
 // ============================================================
-// LOADING
+// NEW ANALYSIS
 // ============================================================
 
-function setLoading(isLoading) {
-
-    const loading =
-        document.getElementById("loading");
-
-
-    const analyseBtn =
-        document.getElementById("analyseBtn");
+const newAnalysisBtn =
+    document.getElementById(
+        "newAnalysisBtn"
+    );
 
 
-    if (loading) {
+if (newAnalysisBtn) {
 
-        loading.style.display =
-            isLoading
-                ? "flex"
-                : "none";
+    newAnalysisBtn.addEventListener(
+        "click",
+        () => {
 
-    }
+            resetFile();
 
 
-    if (analyseBtn) {
+            if (resultContent) {
+                resultContent.innerHTML = "";
+            }
 
-        analyseBtn.disabled =
-            isLoading;
 
-    }
+            showPage("analyse");
+
+        }
+    );
 
 }
 
 
 // ============================================================
-// ERREURS
+// ERROR DISPLAY
 // ============================================================
 
 function showError(message) {
 
-    console.error(
-        ">>> ERREUR :",
-        message
-    );
-
-
-    const errorMessage =
-        document.getElementById("errorMessage");
-
-
     if (!errorMessage) {
         return;
     }
 
 
-    errorMessage.textContent =
-        message;
-
-
-    errorMessage.style.display =
-        "block";
-
-}
-
-
-function clearError() {
-
-    const errorMessage =
-        document.getElementById("errorMessage");
-
-
-    if (!errorMessage) {
-        return;
-    }
-
-
-    errorMessage.textContent = "";
-
-    errorMessage.style.display =
-        "none";
-
-}
-
-
-// ============================================================
-// UTILITAIRES
-// ============================================================
-
-function formatFileSize(bytes) {
-
-    if (bytes === 0) {
-        return "0 Bytes";
-    }
-
-
-    const units = [
-        "Bytes",
-        "KB",
-        "MB",
-        "GB"
-    ];
-
-
-    const index =
-        Math.floor(
-            Math.log(bytes) /
-            Math.log(1024)
+    const span =
+        errorMessage.querySelector(
+            "span"
         );
 
 
-    return (
-        parseFloat(
-            (
-                bytes /
-                Math.pow(1024, index)
-            ).toFixed(2)
-        )
-        +
-        " " +
-        units[index]
+    if (span) {
+
+        span.textContent =
+            message;
+
+    }
+
+
+    errorMessage.classList.add(
+        "show"
+    );
+
+}
+
+
+function hideError() {
+
+    if (!errorMessage) {
+        return;
+    }
+
+
+    errorMessage.classList.remove(
+        "show"
     );
 
 }
 
 
 // ============================================================
-// PROTECTION HTML
+// FORMAT SIZE
+// ============================================================
+
+function formatSize(bytes) {
+
+    if (bytes < 1024) {
+
+        return `${bytes} octets`;
+
+    }
+
+
+    if (bytes < 1024 * 1024) {
+
+        return `${(
+            bytes / 1024
+        ).toFixed(1)} KB`;
+
+    }
+
+
+    return `${(
+        bytes /
+        (1024 * 1024)
+    ).toFixed(1)} MB`;
+
+}
+
+
+// ============================================================
+// HTML ESCAPE
 // ============================================================
 
 function escapeHtml(value) {
 
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }
+
+
+// ============================================================
+// INITIAL LOAD
+// ============================================================
+
+chargerDernieresAnalyses();
