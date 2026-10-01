@@ -12,19 +12,25 @@ except ImportError:
     NotFoundError = Exception
 
 
+
 # ============================================================
-# CLIENT LOCAL — LM STUDIO
+# CONFIGURATION DE L'API DU LLM
 # ============================================================
 
-LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
+    # Adresse du serveur vLLM interne
+    BASE_URL = "http://10.109.28.102:8000/v1"
 
+    # Endpoint compatible OpenAI fourni par vLLM
+    GENERATION_ENDPOINT = "/v1/chat/completions"
+
+    # Nom du modèle configuré sur le serveur vLLM
+    MODEL = "sonatrach-IA"
+
+    API_KEY = ""
 client_local = OpenAI(
-    api_key="lm-studio",
-    base_url=LM_STUDIO_BASE_URL,
+    api_key=API_KEY ,
+    base_url=BASE_URL,
 )
-#modele utuliser  for now 
-MODEL = "mistralai/ministral-3-3b"
-
 
 class SynIAError(Exception):
     """Erreur métier SYNIA."""
