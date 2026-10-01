@@ -4,12 +4,18 @@ import requests
 
 
 # ============================================================
-# SERVEUR vLLM SONATRACH
+# CONFIGURATION
 # ============================================================
 
 BASE_URL = "http://10.109.28.102:8000"
 GENERATION_ENDPOINT = "/v1/chat/completions"
 MODEL = "sonatrach-IA"
+
+MAX_CARACTERES_RAPPORT = 12000
+MAX_ACTIONS_PAR_EQUIPEMENT = 3
+
+PRIORITES = ["élevée", "moyenne", "faible"]
+NIVEAUX = ["faible", "moyen", "élevé"]
 
 
 # ============================================================
@@ -36,19 +42,42 @@ class VLLMIndisponible(SynIAError):
     pass
 
 
-
-
 # ============================================================
-# PARAMETRES
+# PROMPT SYSTEME
 # ============================================================
 
-IGNORER_EQUIPEMENTS_SANS_PROBLEME = True
-MAX_ACTIONS_PAR_EQUIPEMENT = 3
-MAX_CARACTERES_RAPPORT = 12000
-MAX_HISTORIQUE_PAR_EQUIPEMENT = 5
+SYSTEM_PROMPT = """
+Tu es SYNIA, un agent spécialisé dans l'analyse de documents
+de maintenance industrielle.
 
-PRIORITES = ["élevée", "moyenne", "faible"]
-NIVEAUX = ["faible", "moyen", "élevé"]
+Tu travailles uniquement à partir des informations présentes
+dans le document fourni.
+
+REGLES IMPORTANTES :
+
+1. Ne jamais inventer une information.
+2. Ne jamais inventer une date, une cause, une intervention,
+   un résultat ou une mesure.
+3. Si une information n'est pas présente, utiliser null ou [].
+4. Identifier séparément chaque équipement.
+5. Identifier les anomalies, pannes, défauts, dérives ou problèmes
+   réellement mentionnés dans le document.
+6. Identifier les interventions réellement réalisées.
+7. Identifier les interventions prévues ou planifiées.
+8. Identifier les résultats des interventions lorsqu'ils sont
+   présents.
+9. Identifier les causes uniquement lorsqu'elles sont indiquées
+   ou clairement établies dans le document.
+10. Les recommandations de SYNIA sont des ACTIONS FUTURES.
+    Elles peuvent être déduites logiquement d'un problème
+    réellement constaté dans le document.
+11. Une recommandation ne doit jamais être présentée comme une
+    intervention déjà réalisée.
+12. Toujours répondre en français.
+13. Pour un équipement ayant un problème documenté, essayer de
+    proposer au moins une recommandation future pertinente.
+14. Ne pas créer de problème lorsqu'il n'y en a pas.
+"""
 
 
 # ============================================================
@@ -77,7 +106,7 @@ SCHEMA_LISTE = {
 }
 
 
-SCHEMA_FAITS_EQUIPEMENT = {
+SCHEMA_FAITS = {
     "type": "json_schema",
     "json_schema": {
         "name": "faits_equipement",
@@ -85,89 +114,11 @@ SCHEMA_FAITS_EQUIPEMENT = {
         "schema": {
             "type": "object",
             "properties": {
-                "reference": {
-                    "type": ["string", "null"]
-                },
-                "date": {
-                    "type": ["string", "null"]
-                },
                 "equipement": {
                     "type": "string"
                 },
-                "type": {
+                "description": {
                     "type": ["string", "null"]
-                },
-                "anomalies": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "description": {
-                                "type": "string"
-                            },
-                            "niveau": {
-                                "type": ["string", "null"]
-                            },
-                            "cause": {
-                                "type": ["string", "null"]
-                            }
-                        },
-                        "required": [
-                            "description",
-                            "niveau",
-                            "cause"
-                        ],
-                        "additionalProperties": False
-                    }
-                },
-                "interventions": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "resultats": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "techniciens": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            },
-            "required": [
-                "reference",
-                "date",
-                "equipement",
-                "type",
-                "anomalies",
-                "interventions",
-                "resultats",
-                "techniciens"
-            ],
-            "additionalProperties": False
-        }
-    }
-}
-
-
-SCHEMA_EQUIPEMENT = {
-    "type": "json_schema",
-    "json_schema": {
-        "name": "analyse_equipement",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "properties": {
-                "equipement": {
-                    "type": "string"
-                },
-                "statut": {
-                    "type": "string"
                 },
                 "anomalies": {
                     "type": "array",
@@ -194,7 +145,13 @@ SCHEMA_EQUIPEMENT = {
                         "type": "string"
                     }
                 },
-                "interventions": {
+                "interventions_realisees": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interventions_planifiees": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -211,22 +168,161 @@ SCHEMA_EQUIPEMENT = {
                     "items": {
                         "type": "string"
                     }
+                }
+            },
+            "required": [
+                "equipement",
+                "description",
+                "anomalies",
+                "causes",
+                "interventions_realisees",
+                "interventions_planifiees",
+                "resultats",
+                "techniciens"
+            ],
+            "additionalProperties": False
+        }
+    }
+}
+
+
+SCHEMA_ANALYSE = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "analyse_equipement",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "equipement": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": ["string", "null"]
+                },
+                "anomalies": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "description": {
+                                "type": "string"
+                            },
+                            "niveau": {
+                                "type": ["string", "null"]
+                            },
+                            "statut": {
+                                "type": ["string", "null"]
+                            }
+                        },
+                        "required": [
+                            "description",
+                            "niveau",
+                            "statut"
+                        ],
+                        "additionalProperties": False
+                    }
+                },
+                "causes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interventions_realisees": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interventions_planifiees": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "resultats": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "recommandations": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "type": "object",
+                        "properties": {
+                            "action": {
+                                "type": "string"
+                            },
+                            "priorite": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "action",
+                            "priorite"
+                        ],
+                        "additionalProperties": False
                     }
                 }
             },
             "required": [
                 "equipement",
-                "statut",
+                "description",
                 "anomalies",
                 "causes",
-                "interventions",
+                "interventions_realisees",
+                "interventions_planifiees",
                 "resultats",
-                "techniciens",
+                "recommandations"
+            ],
+            "additionalProperties": False
+        }
+    }
+}
+
+
+SCHEMA_SYNTHESE = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "synthese_globale",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "synthese_interventions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recommandations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "equipement": {
+                                "type": "string"
+                            },
+                            "action": {
+                                "type": "string"
+                            },
+                            "priorite": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "equipement",
+                            "action",
+                            "priorite"
+                        ],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": [
+                "synthese_interventions",
                 "recommandations"
             ],
             "additionalProperties": False
@@ -236,131 +332,63 @@ SCHEMA_EQUIPEMENT = {
 
 
 # ============================================================
-# SYSTEM PROMPT
-# ============================================================
-
-SYSTEM_PROMPT = """
-Tu es SYNIA, un agent intelligent spécialisé dans l'analyse
-des documents de maintenance des équipements industriels.
-
-Tu dois répondre uniquement en français.
-
-REGLES IMPORTANTES :
-
-1. Utilise uniquement les informations présentes dans le document.
-2. N'invente jamais une date.
-3. N'invente jamais une cause.
-4. N'invente jamais une intervention.
-5. N'invente jamais un résultat.
-6. Si une information n'est pas présente, utilise null ou une liste vide.
-7. Distingue clairement :
-   - les interventions réellement réalisées ;
-   - les interventions planifiées ;
-   - les recommandations proposées par SYNIA.
-8. Une anomalie doit être basée sur une information réellement présente
-   dans le document.
-9. Si plusieurs équipements sont présents dans le document,
-   analyse-les séparément.
-10. Les recommandations doivent être clairement présentées comme
-    des recommandations de SYNIA et non comme des interventions réalisées.
-"""
-
-
-# ============================================================
-# OUTILS TEXTE
-# ============================================================
-
-def _liste(value):
-    if value is None:
-        return []
-
-    if isinstance(value, list):
-        return value
-
-    return [value]
-
-
-def _cle(value):
-    if value is None:
-        return ""
-
-    return str(value).strip().lower()
-
-
-def _texte_brut(value):
-    if value is None:
-        return ""
-
-    if isinstance(value, str):
-        return value
-
-    return json.dumps(
-        value,
-        ensure_ascii=False
-    )
-
-
-# ============================================================
 # NETTOYAGE JSON
 # ============================================================
 
-def nettoyer_json(texte):
-    if not texte:
+def nettoyer_json(contenu):
+
+    if not contenu:
         raise JSONInvalide("Réponse vide du modèle.")
 
-    texte = texte.strip()
+    contenu = contenu.strip()
 
-    if texte.startswith("```"):
-        texte = re.sub(
-            r"^```(?:json)?\s*",
-            "",
-            texte,
-            flags=re.IGNORECASE
-        )
-
-        texte = re.sub(
-            r"\s*```$",
-            "",
-            texte
-        )
-
-    try:
-        return json.loads(texte)
-
-    except json.JSONDecodeError:
-
-        debut_objet = texte.find("{")
-        fin_objet = texte.rfind("}")
-
-        if debut_objet != -1 and fin_objet != -1:
-            try:
-                return json.loads(
-                    texte[debut_objet:fin_objet + 1]
-                )
-            except json.JSONDecodeError:
-                pass
-
-        debut_liste = texte.find("[")
-        fin_liste = texte.rfind("]")
-
-        if debut_liste != -1 and fin_liste != -1:
-            try:
-                return json.loads(
-                    texte[debut_liste:fin_liste + 1]
-                )
-            except json.JSONDecodeError:
-                pass
-
-    raise JSONInvalide(
-        "Le modèle a renvoyé un JSON invalide."
+    # Enlever ```json ... ```
+    contenu = re.sub(
+        r"^```json\s*",
+        "",
+        contenu,
+        flags=re.IGNORECASE
     )
 
+    contenu = re.sub(
+        r"^```\s*",
+        "",
+        contenu
+    )
+
+    contenu = re.sub(
+        r"\s*```$",
+        "",
+        contenu
+    )
+
+    try:
+        return json.loads(contenu)
+    except json.JSONDecodeError:
+
+        # Chercher un objet JSON dans la réponse
+        debut = contenu.find("{")
+        fin = contenu.rfind("}")
+
+        if debut != -1 and fin != -1 and fin > debut:
+
+            extrait = contenu[debut:fin + 1]
+
+            try:
+                return json.loads(extrait)
+            except json.JSONDecodeError:
+                pass
+
+        raise JSONInvalide(
+            f"JSON invalide reçu du modèle : {contenu[:500]}"
+        )
+
 
 # ============================================================
-# APPEL DU SERVEUR vLLM
+# APPEL VLLM
 # ============================================================
 
-def appeler_modele(prompt, schema, max_tokens=2000):
+def appeler_modele(prompt, schema, max_tokens=2500):
 
     url = BASE_URL + GENERATION_ENDPOINT
 
@@ -389,188 +417,224 @@ def appeler_modele(prompt, schema, max_tokens=2000):
             timeout=120
         )
 
-        response.raise_for_status()
+        print(f"[vLLM] HTTP {response.status_code}")
+
+        if response.status_code != 200:
+            print("[vLLM] Réponse :")
+            print(response.text[:2000])
+
+            raise VLLMIndisponible(
+                f"Erreur vLLM HTTP {response.status_code}"
+            )
 
         data = response.json()
 
-        if "choices" not in data:
-            raise JSONInvalide(
-                "La réponse du serveur ne contient pas 'choices'."
-            )
-
-        if not data["choices"]:
-            raise JSONInvalide(
-                "Le serveur n'a retourné aucun résultat."
-            )
-
-        message = data["choices"][0].get(
-            "message",
-            {}
+        contenu = (
+            data["choices"][0]["message"]["content"]
         )
 
-        contenu = message.get("content")
+        print("[vLLM] Réponse reçue.")
 
-        if not contenu:
-            raise JSONInvalide(
-                "Le modèle n'a retourné aucun contenu."
-            )
+        return nettoyer_json(contenu)
 
-        return contenu
-
-    except requests.exceptions.ConnectionError as e:
-
+    except requests.exceptions.Timeout:
         raise VLLMIndisponible(
-            f"Impossible de contacter le serveur vLLM Sonatrach : {url}"
-        ) from e
+            "Timeout lors de l'appel au serveur vLLM."
+        )
 
-    except requests.exceptions.Timeout as e:
-
+    except requests.exceptions.ConnectionError:
         raise VLLMIndisponible(
-            "Le serveur vLLM Sonatrach n'a pas répondu dans le délai prévu."
-        ) from e
-
-    except requests.exceptions.HTTPError as e:
-
-        raise VLLMIndisponible(
-            f"Erreur HTTP du serveur vLLM : "
-            f"{response.status_code} - {response.text}"
-        ) from e
+            f"Impossible de contacter vLLM : {url}"
+        )
 
     except requests.exceptions.RequestException as e:
-
         raise VLLMIndisponible(
-            f"Erreur de communication avec le serveur vLLM : {e}"
-        ) from e
+            f"Erreur réseau vLLM : {e}"
+        )
 
 
 # ============================================================
-# APPEL + PARSING
-# ============================================================
-
-def appeler_et_parser(prompt, schema, max_tokens=2000):
-
-    contenu = appeler_modele(
-        prompt,
-        schema,
-        max_tokens
-    )
-
-    return nettoyer_json(contenu)
-
-
-# ============================================================
-# NORMALISATION
-# ============================================================
-
-def normaliser_niveau(niveau):
-
-    if niveau is None:
-        return None
-
-    niveau = str(niveau).strip().lower()
-
-    correspondances = {
-        "low": "faible",
-        "medium": "moyen",
-        "high": "élevé",
-        "eleve": "élevé",
-        "élevée": "élevé"
-    }
-
-    return correspondances.get(
-        niveau,
-        niveau if niveau in NIVEAUX else None
-    )
-
-
-def normaliser_statut(statut):
-
-    if not statut:
-        return "inconnu"
-
-    statut = str(statut).strip().lower()
-
-    if "résolu" in statut or "resolu" in statut:
-        return "résolu"
-
-    if "actif" in statut:
-        return "actif"
-
-    if "plan" in statut:
-        return "planifié"
-
-    return statut
-
-
-# ============================================================
-# LISTER LES EQUIPEMENTS
+# ETAPE 1 — IDENTIFIER LES EQUIPEMENTS
 # ============================================================
 
 def _lister_equipements(texte):
 
     prompt = f"""
-Analyse le document de maintenance suivant.
+Voici un document de maintenance industrielle.
 
-Identifie uniquement les équipements réellement mentionnés
+Identifie TOUS les équipements réellement mentionnés
 dans le document.
 
-Si plusieurs équipements sont présents, retourne-les tous.
+Ne donne pas les pièces ou composants comme équipements
+indépendants sauf s'ils sont explicitement traités comme
+un équipement.
 
 DOCUMENT :
 
 {texte}
 """
 
-    resultat = appeler_et_parser(
+    resultat = appeler_modele(
         prompt,
         SCHEMA_LISTE,
         max_tokens=1000
     )
 
-    equipements = resultat.get(
-        "equipements",
-        []
-    )
+    equipements = resultat.get("equipements", [])
 
-    return [
-        str(e).strip()
+    equipements = [
+        e.strip()
         for e in equipements
-        if str(e).strip()
+        if isinstance(e, str) and e.strip()
     ]
 
+    print("\n========== EQUIPEMENTS ==========")
+
+    for e in equipements:
+        print("-", e)
+
+    print("=================================\n")
+
+    return equipements
+
 
 # ============================================================
-# EXTRAIRE UN EQUIPEMENT
+# ETAPE 2 — EXTRAIRE LES FAITS
 # ============================================================
 
-def _extraire_equipement(
-    texte,
-    equipement
-):
+def _extraire_equipement(texte, equipement):
 
     prompt = f"""
-Analyse uniquement les informations concernant
-l'équipement suivant :
+Analyse UNIQUEMENT l'équipement suivant :
 
 ÉQUIPEMENT :
 {equipement}
 
-DOCUMENT :
-{texte}
+À partir du document ci-dessous, extrais toutes les informations
+qui concernent cet équipement.
 
-Extrais uniquement les faits réellement présents
-dans le document.
+Il faut rechercher particulièrement :
+
+- description
+- anomalies
+- pannes
+- défauts
+- niveaux de gravité
+- causes mentionnées
+- interventions réalisées
+- interventions planifiées
+- résultats
+- techniciens
+
+IMPORTANT :
+
+Ne te limite PAS au nom et à la description.
+
+Si une anomalie, une intervention ou un résultat concernant
+l'équipement est présent dans le document, il faut le récupérer.
+
+Ne rien inventer.
+
+DOCUMENT :
+
+{texte}
 """
 
-    return appeler_et_parser(
+    resultat = appeler_modele(
         prompt,
-        SCHEMA_FAITS_EQUIPEMENT,
-        max_tokens=1800
+        SCHEMA_FAITS,
+        max_tokens=2500
     )
+
+    print("\n========== FAITS EXTRAITS ==========")
+    print(f"Équipement : {equipement}")
+    print(json.dumps(
+        resultat,
+        ensure_ascii=False,
+        indent=2
+    ))
+    print("====================================\n")
+
+    return resultat
 
 
 # ============================================================
-# ANALYSER UN RAPPORT
+# ETAPE 3 — ANALYSE DE L'EQUIPEMENT
+# ============================================================
+
+def _analyser_equipement(faits):
+
+    prompt = f"""
+Tu dois construire l'analyse finale d'un équipement industriel.
+
+Voici les faits extraits directement du document :
+
+{json.dumps(
+    faits,
+    ensure_ascii=False,
+    indent=2
+)}
+
+Construis une analyse structurée.
+
+IMPORTANT :
+
+- Conserve les anomalies réellement présentes.
+- Conserve les interventions réellement réalisées.
+- Conserve les interventions planifiées.
+- Conserve les résultats réellement présents.
+- Ne transforme jamais une recommandation en intervention réalisée.
+- Ne crée aucune cause absente du document.
+
+Pour chaque anomalie :
+
+- donne son niveau si le document permet de le déterminer ;
+- sinon utilise null ;
+- indique le statut si possible :
+  "active", "résolue", "en cours" ou null.
+
+RECOMMANDATIONS :
+
+Les recommandations sont des actions FUTURES proposées par SYNIA.
+
+Elles peuvent être déduites logiquement des anomalies
+réellement constatées.
+
+Exemples de formulation :
+
+- Vérifier ...
+- Contrôler ...
+- Surveiller ...
+- Inspecter ...
+- Prévoir ...
+- Effectuer un contrôle ...
+- Remplacer si nécessaire ...
+
+Ne jamais affirmer qu'une action future a déjà été réalisée.
+
+Si un problème réel est identifié, proposer au moins
+une recommandation pertinente lorsque cela est justifié.
+"""
+
+    resultat = appeler_modele(
+        prompt,
+        SCHEMA_ANALYSE,
+        max_tokens=2500
+    )
+
+    print("\n========== ANALYSE EQUIPEMENT ==========")
+    print(json.dumps(
+        resultat,
+        ensure_ascii=False,
+        indent=2
+    ))
+    print("=========================================\n")
+
+    return resultat
+
+
+# ============================================================
+# ANALYSE COMPLETE DU RAPPORT
 # ============================================================
 
 def analyser_rapport(texte):
@@ -581,264 +645,80 @@ def analyser_rapport(texte):
         )
 
     if len(texte) > MAX_CARACTERES_RAPPORT:
+
+        print(
+            f"[SYNIA] Document trop long : "
+            f"{len(texte)} caractères."
+        )
+
         texte = texte[:MAX_CARACTERES_RAPPORT]
 
+    print("\n")
+    print("==============================================")
+    print("        SYNIA — ANALYSE DU RAPPORT")
+    print("==============================================")
+
+    # 1. Identifier les équipements
     equipements = _lister_equipements(texte)
+
+    if not equipements:
+
+        print("[SYNIA] Aucun équipement détecté.")
+
+        return []
 
     resultats = []
 
+    # 2. Traiter chaque équipement
     for equipement in equipements:
 
-        faits = _extraire_equipement(
-            texte,
-            equipement
+        print(
+            f"\n[SYNIA] Analyse de : {equipement}"
         )
 
-        prompt = f"""
-Analyse les informations suivantes concernant
-l'équipement "{equipement}".
+        try:
 
-Informations extraites du document :
+            # Extraction des faits
+            faits = _extraire_equipement(
+                texte,
+                equipement
+            )
 
-{json.dumps(
-    faits,
-    ensure_ascii=False,
-    indent=2
-)}
+            # Analyse complète
+            analyse = _analyser_equipement(
+                faits
+            )
 
-IMPORTANT :
+            # Sécurité : vérifier que le modèle a bien renvoyé
+            # l'équipement
+            if not analyse.get("equipement"):
+                analyse["equipement"] = equipement
 
-- Ne crée aucune information absente.
-- Les anomalies doivent correspondre aux faits du document.
-- Les interventions sont uniquement celles réellement indiquées.
-- Les recommandations doivent être formulées comme des recommandations
-  de SYNIA.
-"""
+            resultats.append(analyse)
 
-        analyse = appeler_et_parser(
-            prompt,
-            SCHEMA_EQUIPEMENT,
-            max_tokens=2000
+        except Exception as e:
+
+            print(
+                f"[SYNIA] ERREUR pour {equipement} : {e}"
+            )
+
+            raise
+
+    print("\n==============================================")
+    print("        RESULTAT FINAL DE L'ANALYSE")
+    print("==============================================")
+
+    print(
+        json.dumps(
+            resultats,
+            ensure_ascii=False,
+            indent=2
         )
-
-        analyse["equipement"] = equipement
-
-        if "anomalies" in analyse:
-            for anomalie in analyse["anomalies"]:
-                anomalie["niveau"] = normaliser_niveau(
-                    anomalie.get("niveau")
-                )
-
-        analyse["statut"] = normaliser_statut(
-            analyse.get("statut")
-        )
-
-        resultats.append(analyse)
-
-    return resultats
-
-
-# ============================================================
-# GROUPEMENT DES EQUIPEMENTS
-# ============================================================
-
-def grouper_par_equipement(resultats):
-
-    groupes = {}
-
-    for resultat in resultats:
-
-        nom = resultat.get(
-            "equipement",
-            "Inconnu"
-        )
-
-        cle = _cle(nom)
-
-        if cle not in groupes:
-            groupes[cle] = []
-
-        groupes[cle].append(resultat)
-
-    return groupes
-
-
-# ============================================================
-# DETECTION DES ANOMALIES RECURRENTES
-# ============================================================
-
-def detecter_anomalies_recurrentes(
-    historiques
-):
-
-    recurrentes = []
-
-    groupes = grouper_par_equipement(
-        historiques
     )
 
-    for cle, rapports in groupes.items():
+    print("==============================================\n")
 
-        if len(rapports) < 2:
-            continue
-
-        anomalies = []
-
-        for rapport in rapports:
-
-            for anomalie in _liste(
-                rapport.get("anomalies")
-            ):
-
-                description = anomalie.get(
-                    "description"
-                )
-
-                if description:
-                    anomalies.append(
-                        description
-                    )
-
-        if anomalies:
-
-            recurrentes.append({
-                "equipement": rapports[0].get(
-                    "equipement"
-                ),
-                "nombre_rapports": len(rapports),
-                "anomalies": anomalies
-            })
-
-    return recurrentes
-
-
-# ============================================================
-# PROMPT EQUIPEMENT
-# ============================================================
-
-def _prompt_equipement(
-    equipement,
-    rapports
-):
-
-    return f"""
-Analyse l'historique de maintenance suivant
-pour l'équipement :
-
-{equipement}
-
-HISTORIQUE :
-
-{json.dumps(
-    rapports,
-    ensure_ascii=False,
-    indent=2
-)}
-
-Identifie :
-
-1. Les anomalies récurrentes.
-2. Les évolutions ou répétitions observables.
-3. Les interventions déjà réalisées.
-4. Les recommandations utiles.
-
-Ne jamais inventer de cause ou d'intervention.
-Les recommandations doivent être clairement identifiées
-comme recommandations de SYNIA.
-"""
-
-
-# ============================================================
-# RESULTAT FINAL
-# ============================================================
-
-def generer_resultat_final(
-    equipements
-):
-
-    resultat_final = []
-
-    for equipement in equipements:
-
-        nom = equipement.get(
-            "equipement",
-            "Inconnu"
-        )
-
-        anomalies = _liste(
-            equipement.get("anomalies")
-        )
-
-        interventions = _liste(
-            equipement.get("interventions")
-        )
-
-        recommandations = _liste(
-            equipement.get("recommandations")
-        )
-
-        resultat_final.append({
-            "equipement": nom,
-            "statut": equipement.get(
-                "statut",
-                "inconnu"
-            ),
-            "anomalies": anomalies,
-            "interventions": interventions,
-            "recommandations": recommandations
-        })
-
-    return resultat_final
-
-
-# ============================================================
-# NETTOYAGE RESULTAT FINAL
-# ============================================================
-
-def nettoyer_resultat_final(resultats):
-
-    nettoyes = []
-
-    for resultat in resultats:
-
-        anomalies = []
-
-        for anomalie in _liste(
-            resultat.get("anomalies")
-        ):
-
-            if isinstance(anomalie, dict):
-
-                description = anomalie.get(
-                    "description"
-                )
-
-                if description:
-
-                    anomalies.append({
-                        "description": description,
-                        "niveau": normaliser_niveau(
-                            anomalie.get("niveau")
-                        )
-                    })
-
-        nettoyes.append({
-            "equipement": resultat.get(
-                "equipement"
-            ),
-            "statut": normaliser_statut(
-                resultat.get("statut")
-            ),
-            "anomalies": anomalies,
-            "interventions": _liste(
-                resultat.get("interventions")
-            )[:MAX_ACTIONS_PAR_EQUIPEMENT],
-            "recommandations": _liste(
-                resultat.get("recommandations")
-            )[:MAX_ACTIONS_PAR_EQUIPEMENT]
-        })
-
-    return nettoyes
+    return resultats
 
 
 # ============================================================
@@ -848,13 +728,16 @@ def nettoyer_resultat_final(resultats):
 def synthese_globale(resultats):
 
     if not resultats:
+
         return {
             "synthese_interventions": [],
             "recommandations": []
         }
 
     prompt = f"""
-À partir des analyses de maintenance suivantes :
+Tu es SYNIA.
+
+Voici les analyses complètes des équipements du rapport :
 
 {json.dumps(
     resultats,
@@ -862,54 +745,54 @@ def synthese_globale(resultats):
     indent=2
 )}
 
-Génère une synthèse globale.
+À partir UNIQUEMENT de ces analyses :
 
-La synthèse doit contenir :
-
-- les principales interventions réellement réalisées ;
-- les principales anomalies détectées ;
-- les recommandations de SYNIA.
+1. Fais une synthèse claire des interventions réalisées.
+2. Identifie les problèmes/anomalies importants.
+3. Génère des recommandations FUTURES pertinentes.
 
 IMPORTANT :
 
-Ne jamais présenter une recommandation comme une intervention
-déjà réalisée.
+Une recommandation est une action à effectuer dans le futur.
 
-Ne jamais inventer une information absente des analyses.
+Elle peut être déduite logiquement d'une anomalie réellement
+présente dans les analyses.
+
+Exemples :
+
+- contrôler un équipement présentant une anomalie ;
+- surveiller une dérive ;
+- effectuer une inspection ;
+- prévoir une maintenance ;
+- vérifier un composant lié à un problème documenté.
+
+Ne jamais inventer une panne, une cause ou une intervention.
+
+Ne jamais dire qu'une recommandation a déjà été réalisée.
+
+Les recommandations doivent être associées à l'équipement
+concerné.
+
+S'il existe des anomalies documentées, les recommandations
+ne doivent pas rester systématiquement vides.
 """
 
-    schema = {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "synthese_globale",
-            "strict": True,
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "synthese_interventions": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "recommandations": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "synthese_interventions",
-                    "recommandations"
-                ],
-                "additionalProperties": False
-            }
-        }
-    }
+    print("\n========== APPEL SYNTHESE ==========")
 
-    return appeler_et_parser(
+    synthese = appeler_modele(
         prompt,
-        schema,
-        max_tokens=1500
+        SCHEMA_SYNTHESE,
+        max_tokens=2000
     )
+
+    print(
+        json.dumps(
+            synthese,
+            ensure_ascii=False,
+            indent=2
+        )
+    )
+
+    print("====================================\n")
+
+    return synthese
